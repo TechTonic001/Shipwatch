@@ -33,6 +33,25 @@ npm run dev
 
 See the package READMEs and `.env.example` files for service configuration.
 
+## Separate development servers
+
+Run these commands in separate terminals when developing the frontend and backend
+independently:
+
+```powershell
+cd backend
+npm run dev
+```
+
+The backend uses Nodemon and runs on `http://localhost:3100`.
+
+```powershell
+cd frontend
+npm run dev
+```
+
+The frontend uses Vite and runs on `http://localhost:5173`.
+
 Neon provisioning is declared in [neon.ts](./neon.ts). The backend consumes Neon’s pooled
 `DATABASE_URL` through `pg`, and validates the pulled Neon Auth and Function URLs as typed
 configuration. Authentication and domain processing remain intentionally stubbed.

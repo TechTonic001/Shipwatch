@@ -1,7 +1,5 @@
 {
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/src/index.ts" }
-  ],
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
     { "path": "/api/internal/sweep", "schedule": "*/5 * * * *" }
   ]
