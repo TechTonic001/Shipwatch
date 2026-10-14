@@ -3,13 +3,20 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import type { RequestHandler } from "express";
 
 import { env } from "../config/env.js";
+import { logWebhookRequest } from "./webhookRequest.js";
 
 export const verifyGithubSignature: RequestHandler = (req, res, next) => {
   const signatureHeader = req.header("x-hub-signature-256");
   const body = req.body;
 
   if (!signatureHeader?.startsWith("sha256=") || !Buffer.isBuffer(body)) {
-    res.status(401).json({ error: "Invalid GitHub signature" });
+    logWebhookRequest(req, {
+      deliveryId: req.header("x-github-delivery") ?? null,
+      event: req.header("x-github-event") ?? null,
+      action: null,
+      outcome: "invalid_signature"
+    });
+    res.status(401).json({ error: "invalid signature" });
     return;
   }
 
@@ -25,7 +32,13 @@ export const verifyGithubSignature: RequestHandler = (req, res, next) => {
     receivedBytes.length !== expectedBytes.length ||
     !timingSafeEqual(receivedBytes, expectedBytes)
   ) {
-    res.status(401).json({ error: "Invalid GitHub signature" });
+    logWebhookRequest(req, {
+      deliveryId: req.header("x-github-delivery") ?? null,
+      event: req.header("x-github-event") ?? null,
+      action: null,
+      outcome: "invalid_signature"
+    });
+    res.status(401).json({ error: "invalid signature" });
     return;
   }
 

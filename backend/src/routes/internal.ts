@@ -12,10 +12,16 @@ const sweep = (authorization: string | undefined, res: Response): void => {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
+
   // TODO: Re-claim stuck or failed deliveries and process a bounded batch.
   res.status(202).json({ accepted: true });
 };
 
-internalRouter.post("/api/internal/sweep", (req, res) => sweep(req.header("authorization"), res));
+internalRouter.post("/api/internal/sweep", (req, res) => {
+  sweep(req.header("authorization"), res);
+});
+
 // Vercel Cron invokes the configured path with GET.
-internalRouter.get("/api/internal/sweep", (req, res) => sweep(req.header("authorization"), res));
+internalRouter.get("/api/internal/sweep", (req, res) => {
+  sweep(req.header("authorization"), res);
+});
