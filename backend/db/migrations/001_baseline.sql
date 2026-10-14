@@ -1,0 +1,3 @@
+-- Baseline schema placeholder for the Neon database.
+-- This file records the current baseline state before Phase 2 migrations.
+-- Apply the production schema from db/schema.sql to the target database before running this migration.

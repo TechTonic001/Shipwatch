@@ -13,9 +13,17 @@ import { startWebhookRequest } from "./middleware/webhookRequest.js";
 import { validateWebhookHeaders } from "./middleware/webhookHeaders.js";
 
 const app = express();
+const jsonParser = express.json();
+
+app.use((req, res, next) => {
+  if (req.path === "/api/webhooks/github") {
+    return next();
+  }
+
+  return jsonParser(req, res, next);
+});
 
 app.use("/api/webhooks/github", startWebhookRequest, rawWebhookBody, validateWebhookHeaders, verifyGithubSignature);
-app.use(express.json());
 app.use(healthRouter);
 app.use(webhookRouter);
 app.use(metricsRouter);

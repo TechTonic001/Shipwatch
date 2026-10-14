@@ -10,8 +10,8 @@ const schema = z.object({
   NEON_AUTH_BASE_URL: z.string().url().optional(),
   NEON_AUTH_JWKS_URL: z.string().url().optional(),
   NEON_FUNCTION_HELLO_BASE_URL: z.string().url().optional(),
-  NODE_ENV: z.enum(["development", "test", "production"]).default("production"),
-  PORT: z.coerce.number().int().positive().default(3000)
+  NODE_ENV: z.enum(["development", "test", "production"]).catch("development"),
+  PORT: z.coerce.number().int().positive().default(4900)
 });
 
 export const env = schema.parse(process.env);

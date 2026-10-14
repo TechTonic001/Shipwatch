@@ -40,8 +40,15 @@ describe("verifyGithubSignature", () => {
     expect(run(sign(body, secret)).next).toHaveBeenCalledOnce();
   });
 
+  it("rejects a tampered payload with a valid-looking signature", () => {
+    const tampered = Buffer.from('{"action":"completed"}');
+    const result = run(sign(body, secret), tampered);
+    expect(result.res.status).toHaveBeenCalledWith(401);
+    expect(result.res.json).toHaveBeenCalledWith({ error: "invalid signature" });
+    expect(result.next).not.toHaveBeenCalled();
+  });
+
   it.each([
-    ["tampered body", sign(body, secret), Buffer.from('{"action":"completed"}')],
     ["wrong secret", sign(body, `${secret}-wrong`), body],
     ["missing header", undefined, body],
     ["missing prefix", createHmac("sha256", secret).update(body).digest("hex"), body],
@@ -56,6 +63,30 @@ describe("verifyGithubSignature", () => {
 
   it("verifies exact raw bytes including whitespace", () => {
     const raw = Buffer.from('{\n  "action": "completed"\n}');
-    expect(run(sign(raw, secret), raw).next).toHaveBeenCalledOnce();
+    const sameBytes = sign(raw, secret);
+    const result = run(sameBytes, raw);
+    expect(result.next).toHaveBeenCalledOnce();
+  });
+
+  it("does not throw on an invalid-length signature", () => {
+    const res = response();
+    const next = vi.fn();
+    const headers = new Map([
+      ["x-hub-signature-256", "sha256=short"],
+      ["x-github-delivery", "550e8400-e29b-41d4-a716-446655440000"],
+      ["x-github-event", "workflow_run"]
+    ]);
+
+    expect(() => {
+      verifyGithubSignature(
+        { body, header: (name: string) => headers.get(name) } as never,
+        res as never,
+        next
+      );
+    }).not.toThrow();
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ error: "invalid signature" });
+    expect(next).not.toHaveBeenCalled();
   });
 });
