@@ -11,6 +11,7 @@ import { webhookRouter } from "./routes/webhook.js";
 import { logger } from "./lib/logger.js";
 import { startWebhookRequest } from "./middleware/webhookRequest.js";
 import { validateWebhookHeaders } from "./middleware/webhookHeaders.js";
+import { verifyDatabaseConnection } from "./db/pool.js";
 
 const app = express();
 const jsonParser = express.json();
@@ -33,6 +34,7 @@ app.use(errorHandler);
 if (env.NODE_ENV === "development") {
   app.listen(env.PORT, () => {
     logger.info({ port: env.PORT }, "Shipwatch backend listening");
+    void verifyDatabaseConnection();
   });
 }
 
