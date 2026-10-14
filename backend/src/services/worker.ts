@@ -2,6 +2,8 @@ import { pool } from "../db/pool.js";
 import { logger } from "../lib/logger.js";
 import { claimBatch, markDead, markFailed, markIgnored, markProcessed, reapPoison, type QueueDelivery } from "./queue.js";
 import { processQueuedDelivery } from "./processors/index.js";
+import { dispatchAlerts } from "./alertDispatcher.js";
+import { schedule } from "./scheduler.js";
 
 export type ProcessBatchOptions = {
   limit?: number;
@@ -82,6 +84,9 @@ export async function processBatch({
         const updated = await markProcessed(row.deliveryId, row.lockedAt);
         if (updated) {
           summary.processed += 1;
+          schedule(async () => {
+            await dispatchAlerts({ limit: 20, deadlineMs: 5_000 });
+          });
         } else {
           summary.lockLost += 1;
         }

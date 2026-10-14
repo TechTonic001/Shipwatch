@@ -1,17 +1,20 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 
-import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import request from "supertest";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
+import {
+  startTestDatabase,
+  stopTestDatabase,
+  truncateApplicationTables,
+  type TestDatabase
+} from "../helpers/db.js";
 import { sign } from "../helpers/sign.js";
 
 const secret = "integration-secret";
-const dockerAvailable = spawnSync("docker", ["info"], { stdio: "ignore" }).status === 0;
-let container: StartedPostgreSqlContainer;
+const database: TestDatabase = await startTestDatabase();
 let app: typeof import("../../src/index.js").default;
 let pool: typeof import("../../src/db/pool.js").pool;
 
@@ -19,7 +22,7 @@ const fixture = async (name: string): Promise<Buffer> =>
   readFile(resolve("tests/fixtures", name));
 
 async function countRows(): Promise<number> {
-  const result = await pool.query("SELECT count(*)::int AS count FROM webhook_deliveries");
+  const result = await database.pool.query("SELECT count(*)::int AS count FROM webhook_deliveries");
   return result.rows[0].count;
 }
 
@@ -36,34 +39,24 @@ function headers(
   };
 }
 
-describe.skipIf(!dockerAvailable)("GitHub webhook ingestion", () => {
+describe("GitHub webhook ingestion", () => {
   beforeAll(async () => {
-    container = await new PostgreSqlContainer("postgres:16").start();
-    process.env.DATABASE_URL = container.getConnectionUri();
+    process.env.DATABASE_URL = database.url;
     process.env.GITHUB_WEBHOOK_SECRET = secret;
     process.env.SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/test";
     process.env.CRON_SECRET = "integration-cron";
     process.env.NODE_ENV = "test";
     ({ default: app } = await import("../../src/index.js"));
     ({ pool } = await import("../../src/db/pool.js"));
-    await pool.query(`
-      CREATE TABLE webhook_deliveries (
-        delivery_id UUID PRIMARY KEY,
-        event_type TEXT NOT NULL,
-        action TEXT,
-        github_repo_id BIGINT,
-        payload JSONB NOT NULL,
-        status TEXT NOT NULL DEFAULT 'received',
-        attempts INTEGER NOT NULL DEFAULT 0,
-        received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-        next_attempt_at TIMESTAMPTZ
-      )
-    `);
+  }, 60_000);
+
+  beforeEach(async () => {
+    await truncateApplicationTables(database.pool);
   }, 120_000);
 
   afterAll(async () => {
     if (pool) await pool.end();
-    if (container) await container.stop();
+    if (database) await stopTestDatabase(database);
   });
 
   it("rejects bad signatures without writing", async () => {
@@ -80,7 +73,9 @@ describe.skipIf(!dockerAvailable)("GitHub webhook ingestion", () => {
     const body = await fixture("workflow_run.requested.json");
     const response = await request(app).post("/api/webhooks/github").set(headers(body)).send(body);
     expect(response.body).toEqual({ ok: true, duplicate: false });
-    const result = await pool.query("SELECT event_type, action, github_repo_id, status, payload FROM webhook_deliveries");
+    const result = await database.pool.query(
+      "SELECT event_type, action, github_repo_id, status, payload FROM webhook_deliveries"
+    );
     expect(result.rows[0]).toMatchObject({
       event_type: "workflow_run",
       action: "requested",
@@ -109,7 +104,7 @@ describe.skipIf(!dockerAvailable)("GitHub webhook ingestion", () => {
       const body = await fixture(filename);
       const delivery = randomUUID();
       await request(app).post("/api/webhooks/github").set(headers(body, delivery, event)).send(body);
-      const result = await pool.query(
+      const result = await database.pool.query(
         "SELECT event_type, action, github_repo_id FROM webhook_deliveries WHERE delivery_id = $1",
         [delivery]
       );
@@ -131,7 +126,15 @@ describe.skipIf(!dockerAvailable)("GitHub webhook ingestion", () => {
     );
     expect(responses.every((response) => response.status === 200)).toBe(true);
     expect(responses.filter((response) => response.body.duplicate).length).toBe(19);
-    expect(await countRows()).toBe(2);
+    expect(await countRows()).toBe(1);
+
+    const backendPids = await Promise.all(
+      Array.from({ length: 20 }, async () => {
+        const result = await pool.query<{ pid: number }>("SELECT pg_backend_pid() AS pid");
+        return result.rows[0].pid;
+      })
+    );
+    expect(new Set(backendPids).size).toBeGreaterThan(1);
   });
 
   it("handles ping and unknown events without storing", async () => {
@@ -147,7 +150,7 @@ describe.skipIf(!dockerAvailable)("GitHub webhook ingestion", () => {
       .set(headers(unknown, "550e8400-e29b-41d4-a716-446655440003", "push"))
       .send(unknown);
     expect(unknownResponse.body).toEqual({ ok: true, ignored: true });
-    expect(await countRows()).toBe(2);
+    expect(await countRows()).toBe(0);
   });
 
   it("rejects malformed headers, JSON, and oversized payloads", async () => {

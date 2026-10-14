@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { PermanentProcessingError } from "../queue.js";
 
-const workflowRunPayloadSchema = z
+export const workflowRunPayloadSchema = z
   .object({
     workflow_run: z
       .object({

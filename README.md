@@ -33,6 +33,35 @@ npm run dev
 
 See the package READMEs and `.env.example` files for service configuration.
 
+## Running tests
+
+Run the unit suite without a database:
+
+```powershell
+npm run test:unit --workspace backend
+```
+
+Run the real PostgreSQL integration suite with a local PostgreSQL instance or an
+isolated Neon test branch. The database name or URL must contain `test`; never point
+`TEST_DATABASE_URL` at production:
+
+```powershell
+$env:TEST_DATABASE_URL = "postgres://shipwatch:shipwatch@localhost:5432/shipwatch_test"
+npm run test:integration --workspace backend
+```
+
+If the environment does not provide `TEST_DATABASE_URL`, the integration suite starts
+PostgreSQL 16 through Docker/Testcontainers:
+
+```powershell
+docker info
+npm run test:integration --workspace backend
+```
+
+CI runs the same integration suite against its PostgreSQL service. A missing provider
+is a hard failure; tests are never skipped because a database is unavailable. To use a
+Neon branch, use its dedicated test database URL and keep it separate from `DATABASE_URL`.
+
 ## Separate development servers
 
 Run these commands in separate terminals when developing the frontend and backend

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { PermanentProcessingError } from "../queue.js";
 
-const deploymentPayloadSchema = z
+export const deploymentPayloadSchema = z
   .object({
     deployment: z
       .object({

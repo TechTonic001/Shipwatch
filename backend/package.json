@@ -5,10 +5,13 @@
   "scripts": {
     "dev": "nodemon --watch src --ext ts --exec \"tsx src/index.ts\"",
     "replay": "tsx scripts/replay.ts",
+    "seed-demo": "tsx scripts/seed-demo.ts",
     "build": "tsc",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test": "npm run test:unit && npm run test:integration",
     "migrate": "node-pg-migrate --database-url-var DATABASE_URL --migrations-dir db/migrations"
   },
   "dependencies": {

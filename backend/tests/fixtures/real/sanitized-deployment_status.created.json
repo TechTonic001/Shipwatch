@@ -1,0 +1,20 @@
+{
+  "action": "created",
+  "repository": {
+    "id": 9201,
+    "full_name": "demo/storefront",
+    "production_environment": "production"
+  },
+  "deployment": {
+    "id": 92011,
+    "environment": "Production",
+    "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "created_at": "2026-01-01T00:00:00Z"
+  },
+  "deployment_status": {
+    "id": 92012,
+    "state": "success",
+    "environment": "Production",
+    "created_at": "2026-01-01T00:01:00Z"
+  }
+}
