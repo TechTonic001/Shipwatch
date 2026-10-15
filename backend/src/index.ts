@@ -1,4 +1,5 @@
 import express from "express";
+import helmet from "helmet";
 
 import { env } from "./config/env.js";
 import { errorHandler } from "./middleware/errorHandler.js";
@@ -14,7 +15,13 @@ import { validateWebhookHeaders } from "./middleware/webhookHeaders.js";
 import { verifyDatabaseConnection } from "./db/pool.js";
 
 const app = express();
-const jsonParser = express.json();
+app.set("trust proxy", 1);
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: "same-site" },
+  referrerPolicy: { policy: "no-referrer" }
+}));
+const jsonParser = express.json({ limit: "100kb" });
 
 app.use((req, res, next) => {
   if (req.path === "/api/webhooks/github") {

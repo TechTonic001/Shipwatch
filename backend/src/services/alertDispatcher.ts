@@ -2,6 +2,7 @@ import { pool } from "../db/pool.js";
 import { env } from "../config/env.js";
 import { logger } from "../lib/logger.js";
 import { formatSlackMessage, sendSlackMessage } from "./slack.js";
+import { decryptSecret } from "../lib/secrets.js";
 
 const MAX_ATTEMPTS = 5;
 const STALE_LOCK_MS = 90_000;
@@ -159,8 +160,17 @@ export async function dispatchAlerts({
         continue;
       }
       const payload = alert.payload;
+      let destination = env.SLACK_WEBHOOK_URL;
+      if (alert.webhookUrl) {
+        try {
+          destination = decryptSecret(alert.webhookUrl);
+        } catch (error) {
+          logger.warn({ err: error instanceof Error ? error.message : "secret decrypt failed" }, "encrypted Slack destination unavailable");
+          destination = "";
+        }
+      }
       const result = await sendSlackMessage(
-        alert.webhookUrl ?? env.SLACK_WEBHOOK_URL,
+        destination,
         formatSlackMessage(alert.kind, {
           repo: String(payload.repo ?? ""),
           environment: String(payload.environment ?? alert.environment),
