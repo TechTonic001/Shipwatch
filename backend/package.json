@@ -12,7 +12,8 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test": "npm run test:unit && npm run test:integration",
-    "migrate": "node-pg-migrate --database-url-var DATABASE_URL --migrations-dir db/migrations"
+    "migrate": "node-pg-migrate --database-url-var DATABASE_URL --migrations-dir db/migrations",
+    "encrypt-secrets": "tsx scripts/encrypt-secrets.ts"
   },
   "dependencies": {
     "@vercel/functions": "^2.1.0",

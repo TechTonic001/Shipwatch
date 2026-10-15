@@ -13,7 +13,7 @@ const etags = new Map<string, string>();
 type GithubResponse = { status: number; headers: Headers; body: unknown; remaining: number | null };
 type Repository = { id: number; full_name: string; production_environment: string; reconciled_through: Date | null };
 
-async function githubGet(path: string, since: Date): Promise<GithubResponse> {
+async function githubGet(path: string): Promise<GithubResponse> {
   if (!env.GITHUB_RECONCILE_TOKEN) throw new Error("GITHUB_RECONCILE_TOKEN is not configured");
   const headers: Record<string, string> = {
     accept: "application/vnd.github+json",
@@ -55,7 +55,7 @@ async function reconcileRepository(repo: Repository): Promise<{ changed: number;
   let changed = 0;
   let stopped = false;
   for (const page of Array.from({ length: MAX_PAGES }, (_, index) => index + 1)) {
-    const runs = await githubGet(`${env.GITHUB_API_URL}/repos/${repo.full_name}/actions/runs?created=>=${encodeURIComponent(since.toISOString())}&per_page=${PAGE_SIZE}&page=${page}`, since);
+    const runs = await githubGet(`${env.GITHUB_API_URL}/repos/${repo.full_name}/actions/runs?created=>=${encodeURIComponent(since.toISOString())}&per_page=${PAGE_SIZE}&page=${page}`);
     if (runs.status === 304) break;
     for (const run of items((runs.body as { workflow_runs?: unknown }).workflow_runs)) {
       await processWorkflowRun({ repository: { id: repo.id, full_name: repo.full_name }, workflow_run: run });
@@ -64,7 +64,7 @@ async function reconcileRepository(repo: Repository): Promise<{ changed: number;
     if (items((runs.body as { workflow_runs?: unknown }).workflow_runs).length < PAGE_SIZE) break;
   }
   for (const page of Array.from({ length: MAX_PAGES }, (_, index) => index + 1)) {
-    const deployments = await githubGet(`${env.GITHUB_API_URL}/repos/${repo.full_name}/deployments?since=${encodeURIComponent(since.toISOString())}&per_page=${PAGE_SIZE}&page=${page}`, since);
+    const deployments = await githubGet(`${env.GITHUB_API_URL}/repos/${repo.full_name}/deployments?since=${encodeURIComponent(since.toISOString())}&per_page=${PAGE_SIZE}&page=${page}`);
     if (deployments.status === 304) break;
     const rows = items(deployments.body);
     for (const deployment of rows) {
@@ -74,7 +74,7 @@ async function reconcileRepository(repo: Repository): Promise<{ changed: number;
         repository: { id: repo.id, full_name: repo.full_name, production_environment: repo.production_environment },
         deployment: { ...deployment, id: deploymentId, created_at: apiDate(deployment.created_at, end) }
       });
-      const statuses = await githubGet(`${env.GITHUB_API_URL}/repos/${repo.full_name}/deployments/${deploymentId}/statuses?per_page=${PAGE_SIZE}`, since);
+      const statuses = await githubGet(`${env.GITHUB_API_URL}/repos/${repo.full_name}/deployments/${deploymentId}/statuses?per_page=${PAGE_SIZE}`);
       for (const status of items(statuses.body)) {
         const statusId = numberValue(status.id);
         if (!statusId) continue;

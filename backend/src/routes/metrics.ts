@@ -41,7 +41,7 @@ metricsRouter.use("/api", async (req, res, next) => {
   }
   if (!authorized(req, res)) return;
   try {
-    if (!(await allowRateLimit("dashboard", req.ip, 120, 60))) {
+    if (!(await allowRateLimit("dashboard", req.ip ?? req.socket.remoteAddress ?? "unknown", 120, 60))) {
       res.status(429).json({ error: "Rate limit exceeded" });
       return;
     }

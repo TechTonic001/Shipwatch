@@ -41,7 +41,7 @@ async function applySchema(pool: pg.Pool): Promise<void> {
     return;
   }
 
-  const migrations = ["000_foundation.sql", "001_baseline.sql", "002_phase2.sql", "003_phase3.sql", "004_phase4.sql"];
+  const migrations = ["000_foundation.sql", "001_baseline.sql", "002_phase2.sql", "003_phase3.sql", "004_phase4.sql", "005_phase7.sql"];
   for (const migration of migrations) {
     const sql = await readFile(resolve("db/migrations", migration), "utf8");
     if (sql.replace(/--.*$/gm, "").trim()) {

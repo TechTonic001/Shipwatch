@@ -22,6 +22,7 @@ const schema = z.object({
       return false;
     }
   }, "ENCRYPTION_KEY must be base64 for exactly 32 bytes").optional(),
+  ENCRYPTION_KEY_OLD: z.string().optional(),
   NODE_ENV: z.enum(["development", "test", "production"]).catch("development"),
   PORT: z.coerce.number().int().positive().default(4900)
 });

@@ -4,6 +4,8 @@ import type { RequestHandler } from "express";
 
 import { env } from "../config/env.js";
 import { logWebhookRequest } from "./webhookRequest.js";
+import { logger } from "../lib/logger.js";
+import { allowRateLimit } from "../services/rateLimit.js";
 
 const invalidSignature = (req: Parameters<RequestHandler>[0], res: Parameters<RequestHandler>[1]): void => {
   logWebhookRequest(req, {
@@ -12,6 +14,8 @@ const invalidSignature = (req: Parameters<RequestHandler>[0], res: Parameters<Re
     action: null,
     outcome: "invalid_signature"
   });
+  void allowRateLimit("webhook-invalid", req.ip ?? req.socket.remoteAddress ?? "unknown", 30, 60)
+    .catch((error: unknown) => logger.warn({ err: error instanceof Error ? error.message : "rate limit unavailable" }, "invalid webhook rate limit unavailable"));
   res.status(401).json({ error: "invalid signature" });
 };
 
