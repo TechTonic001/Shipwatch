@@ -19,6 +19,10 @@ const schema = z.object({
   ENCRYPTION_KEY_OLD: z.string().refine((value) => /^[A-Za-z0-9+/]+={0,2}$/.test(value) && Buffer.from(value, "base64").length === 32, "ENCRYPTION_KEY_OLD must be base64 for exactly 32 bytes").optional(),
   NODE_ENV: z.enum(["development", "test", "production"]).catch("development"),
   PORT: z.coerce.number().int().positive().default(4900)
+}).superRefine((value, context) => {
+  if (value.NODE_ENV === "production" && !value.ENCRYPTION_KEY) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["ENCRYPTION_KEY"], message: "ENCRYPTION_KEY is required in production" });
+  }
 });
 
 export const env = schema.parse(process.env);
