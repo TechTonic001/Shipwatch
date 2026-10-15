@@ -1,4 +1,4 @@
-export function RunsTable() {
-  // TODO: Render workflow and deployment runs.
-  return <section>TODO: RunsTable</section>;
+import type { Run } from "../hooks/useRuns";
+export function RunsTable({ runs }: { runs: Run[] }) {
+  return <section className="rounded border bg-white p-4"><h2 className="mb-3 text-lg font-semibold">Recent runs</h2><div className="overflow-x-auto"><table className="w-full text-left text-sm"><caption className="sr-only">Recent deployment runs</caption><thead><tr><th className="p-2">Started</th><th className="p-2">Environment</th><th className="p-2">State</th><th className="p-2">SHA</th></tr></thead><tbody>{runs.map((run) => <tr className="border-t" key={run.id}><td className="p-2">{new Date(run.startedAt).toLocaleString()}</td><td className="p-2">{run.environment}</td><td className="p-2">{run.state}</td><td className="p-2">{run.sha?.slice(0, 8) ?? "—"}</td></tr>)}</tbody></table></div></section>;
 }

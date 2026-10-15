@@ -57,3 +57,14 @@ selected.
 
 Lead time for changes is explicitly out of scope for Phase 5 because it
 requires commit data that Shipwatch does not currently ingest.
+
+## Dashboard token limitations
+
+The dashboard read token is a bearer credential entered by the user and kept
+in memory/session storage; it is not compiled into the frontend bundle. This
+is suitable for a small read-only dashboard but is not user authentication:
+anyone who obtains the token can read every repository allowed by the API,
+session storage is accessible to same-origin JavaScript, and a shared token
+cannot identify or revoke an individual user. Production deployments should
+use HTTPS, a short-lived identity-aware proxy or OAuth, rotation, and
+server-side authorization if stronger guarantees are required.

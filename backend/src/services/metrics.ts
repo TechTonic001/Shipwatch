@@ -51,7 +51,7 @@ export async function getMetrics(repoId: number, window: MetricsWindow): Promise
           SELECT now() AS window_end, now() - make_interval(days => $2::int) AS window_start
           ), days AS (
             SELECT generate_series(
-            date_trunc('day', window_start AT TIME ZONE 'UTC'),
+            date_trunc('day', window_end AT TIME ZONE 'UTC') - (($2::int - 1) * interval '1 day'),
             date_trunc('day', window_end AT TIME ZONE 'UTC'),
             interval '1 day'
           ) AS day

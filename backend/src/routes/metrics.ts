@@ -8,9 +8,11 @@ import { decodeCursor, getMetrics, listIncidents, listRepositories, listRuns, re
 
 export const metricsRouter = Router();
 
-const repoParams = z.object({ id: z.coerce.number().int().positive() });
-const windowQuery = z.object({ window: z.enum(["7d", "30d"]).default("7d") });
-const pageQuery = z.object({ limit: z.coerce.number().int().min(1).max(100).default(25), cursor: z.string().min(1).optional() });
+const repoParams = z.object({ id: z.coerce.number().int().positive() }).strict();
+const windowQuery = z.object({ window: z.enum(["7d", "30d"]).default("7d") }).strict();
+const pageQuery = z.object({ limit: z.coerce.number().int().min(1).max(100).default(25), cursor: z.string().min(1).optional() }).strict();
+const runCursor = z.object({ startedAt: z.string().datetime(), id: z.number().int().positive() }).strict();
+const incidentCursor = z.object({ openedAt: z.string().datetime(), id: z.string().uuid() }).strict();
 
 function authorized(req: Request, res: Response): boolean {
   const value = req.header("authorization");
@@ -60,7 +62,7 @@ metricsRouter.get("/api/repos/:id/runs", async (req, res, next) => {
     const params = repoParams.parse(req.params);
     const query = pageQuery.parse(req.query);
     if (!(await repositoryExists(params.id))) { res.status(404).json({ error: "Repository not found" }); return; }
-    const cursor = query.cursor ? decodeCursor<{ startedAt: string; id: number }>(query.cursor) : undefined;
+    const cursor = query.cursor ? runCursor.parse(decodeCursor<unknown>(query.cursor)) : undefined;
     res.json(await listRuns(params.id, query.limit, cursor));
   } catch (error) { next(error); }
 });
@@ -70,7 +72,7 @@ metricsRouter.get("/api/repos/:id/incidents", async (req, res, next) => {
     const params = repoParams.parse(req.params);
     const query = pageQuery.extend({ status: z.enum(["open", "resolved"]).optional() }).parse(req.query);
     if (!(await repositoryExists(params.id))) { res.status(404).json({ error: "Repository not found" }); return; }
-    const cursor = query.cursor ? decodeCursor<{ openedAt: string; id: string }>(query.cursor) : undefined;
+    const cursor = query.cursor ? incidentCursor.parse(decodeCursor<unknown>(query.cursor)) : undefined;
     res.json(await listIncidents(params.id, query.status, query.limit, cursor));
   } catch (error) { next(error); }
 });
