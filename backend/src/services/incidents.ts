@@ -44,19 +44,25 @@ export async function evaluateIncidentTransition(
     const incidentIdResult = await client.query<{ id: string }>(
       `INSERT INTO incidents
         (id, repo_id, environment, status, trigger_deployment_id, trigger_created_at, opened_at)
-       SELECT $5, $1, $2, 'open', $3, $4, $4
-         FROM deployments current_deployment
+        SELECT $5, $1, $2, 'open', $3, $4, $4
+        FROM deployments current_deployment
         WHERE current_deployment.id = $3
           AND NOT EXISTS (
             SELECT 1 FROM deployments newer
-             WHERE newer.repo_id = current_deployment.repo_id
-               AND lower(btrim(newer.environment)) = lower(btrim(current_deployment.environment))
-               AND newer.is_production
-               AND newer.created_at > current_deployment.created_at
+            WHERE newer.repo_id = current_deployment.repo_id
+            AND lower(btrim(newer.environment)) = lower(btrim(current_deployment.environment))
+            AND newer.is_production
+            AND newer.created_at > current_deployment.created_at
           )
-       ON CONFLICT DO NOTHING
-       RETURNING id`,
-      [deployment.repoId, deployment.environment, deployment.id, deployment.createdAt, randomUUID()]
+        ON CONFLICT DO NOTHING
+        RETURNING id`,
+      [
+        deployment.repoId,
+        deployment.environment,
+        deployment.id,
+        deployment.createdAt,
+        randomUUID()
+      ]
     );
     const incident = incidentIdResult.rows[0];
     if (incident) {
@@ -88,14 +94,21 @@ export async function evaluateIncidentTransition(
         AND status = 'open'
         AND $4 > trigger_created_at
       RETURNING id, opened_at AS "openedAt", resolved_at AS "resolvedAt"`,
-    [deployment.repoId, deployment.environment, deployment.id, deployment.createdAt]
+    [
+      deployment.repoId,
+      deployment.environment,
+      deployment.id,
+      deployment.createdAt
+    ]
   );
   const incident = resolved.rows[0];
   if (!incident) return;
 
   const durationSeconds = Math.max(
     0,
-    Math.floor((incident.resolvedAt.getTime() - incident.openedAt.getTime()) / 1000)
+    Math.floor(
+      (incident.resolvedAt.getTime() - incident.openedAt.getTime()) / 1000
+    )
   );
   await createAlert({
     client,
@@ -103,14 +116,23 @@ export async function evaluateIncidentTransition(
     repoId: deployment.repoId,
     environment: deployment.environment,
     kind: "incident_resolved",
-    payload: alertPayload(deployment, incident.id, incident.resolvedAt, durationSeconds)
+    payload: alertPayload(
+      deployment,
+      incident.id,
+      incident.resolvedAt,
+      durationSeconds
+    )
   });
 }
 
-export async function openIncident(_key: string, _reason: string): Promise<void> {
+export async function openIncident(
+  _key: string,
+  _reason: string
+): Promise<void> {
   // Compatibility stub retained for the original scaffold API.
 }
 
 export async function resolveIncident(_key: string): Promise<void> {
   // Compatibility stub retained for the original scaffold API.
 }
+  
