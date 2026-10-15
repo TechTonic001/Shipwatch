@@ -26,7 +26,7 @@ function authorized(req: Request, res: Response): boolean {
   return true;
 }
 
-metricsRouter.use("/api", async (req, res, next) => {
+metricsRouter.use("/api/repos", async (req, res, next) => {
   const origin = req.header("origin");
   if (origin && origin !== env.FRONTEND_ORIGIN) {
     res.status(403).json({ error: "Origin not allowed" });

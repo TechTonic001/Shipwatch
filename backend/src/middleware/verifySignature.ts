@@ -7,15 +7,23 @@ import { logWebhookRequest } from "./webhookRequest.js";
 import { logger } from "../lib/logger.js";
 import { allowRateLimit } from "../services/rateLimit.js";
 
-const invalidSignature = (req: Parameters<RequestHandler>[0], res: Parameters<RequestHandler>[1]): void => {
+const invalidSignature = async (req: Parameters<RequestHandler>[0], res: Parameters<RequestHandler>[1]): Promise<void> => {
   logWebhookRequest(req, {
     deliveryId: req.header("x-github-delivery") ?? null,
     event: req.header("x-github-event") ?? null,
     action: null,
     outcome: "invalid_signature"
   });
-  void allowRateLimit("webhook-invalid", req.ip ?? req.socket.remoteAddress ?? "unknown", 30, 60)
-    .catch((error: unknown) => logger.warn({ err: error instanceof Error ? error.message : "rate limit unavailable" }, "invalid webhook rate limit unavailable"));
+  if (req.socket) {
+    try {
+      if (!(await allowRateLimit("webhook-invalid", req.ip ?? req.socket.remoteAddress ?? "unknown", 30, 60))) {
+        res.status(429).json({ error: "Unauthorized" });
+        return;
+      }
+    } catch (error) {
+      logger.warn({ err: error instanceof Error ? error.message : "rate limit unavailable" }, "invalid webhook rate limit unavailable");
+    }
+  }
   res.status(401).json({ error: "invalid signature" });
 };
 

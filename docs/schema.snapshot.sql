@@ -59,6 +59,28 @@ CREATE TABLE public.repositories (
     production_environment text DEFAULT 'production'::text NOT NULL,
     slack_webhook_url text,
     alert_config jsonb DEFAULT '{}'::jsonb NOT NULL
+    ,reconciled_through timestamp with time zone
+);
+
+CREATE TABLE public.rate_limits (
+    bucket text NOT NULL,
+    key text NOT NULL,
+    window_started_at timestamp with time zone NOT NULL,
+    requests integer DEFAULT 0 NOT NULL
+);
+
+CREATE TABLE public.workflow_runs (
+    id bigint NOT NULL,
+    repo_id bigint NOT NULL,
+    name text,
+    head_sha text,
+    head_branch text,
+    event text,
+    status text,
+    conclusion text,
+    run_started_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    created_at timestamp with time zone NOT NULL
 );
 
 CREATE TABLE public.webhook_deliveries (

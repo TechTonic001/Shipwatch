@@ -17,12 +17,12 @@ async function githubGet(path: string): Promise<GithubResponse> {
   if (!env.GITHUB_RECONCILE_TOKEN) throw new Error("GITHUB_RECONCILE_TOKEN is not configured");
   const headers: Record<string, string> = {
     accept: "application/vnd.github+json",
-    authorization: `Bearer ${env.GITHUB_RECONCILE_TOKEN}`,
+    authorization: "Bearer " + env.GITHUB_RECONCILE_TOKEN,
     "x-github-api-version": "2022-11-28"
   };
   const previous = etags.get(path);
   if (previous) headers["if-none-match"] = previous;
-  const response = await fetch(`https://api.github.com${path}`, { headers });
+  const response = await fetch(path, { headers });
   const remaining = response.headers.get("x-ratelimit-remaining");
   if (remaining !== null && Number(remaining) <= 0) throw new Error("GitHub API rate limit exhausted");
   if (response.headers.has("etag")) etags.set(path, response.headers.get("etag") ?? "");
@@ -56,15 +56,17 @@ async function reconcileRepository(repo: Repository): Promise<{ changed: number;
   let stopped = false;
   for (const page of Array.from({ length: MAX_PAGES }, (_, index) => index + 1)) {
     const runs = await githubGet(`${env.GITHUB_API_URL}/repos/${repo.full_name}/actions/runs?created=>=${encodeURIComponent(since.toISOString())}&per_page=${PAGE_SIZE}&page=${page}`);
+    if (runs.remaining !== null && runs.remaining <= 1) stopped = true;
     if (runs.status === 304) break;
     for (const run of items((runs.body as { workflow_runs?: unknown }).workflow_runs)) {
       await processWorkflowRun({ repository: { id: repo.id, full_name: repo.full_name }, workflow_run: run });
       changed += 1;
     }
-    if (items((runs.body as { workflow_runs?: unknown }).workflow_runs).length < PAGE_SIZE) break;
+    if (stopped || items((runs.body as { workflow_runs?: unknown }).workflow_runs).length < PAGE_SIZE) break;
   }
   for (const page of Array.from({ length: MAX_PAGES }, (_, index) => index + 1)) {
     const deployments = await githubGet(`${env.GITHUB_API_URL}/repos/${repo.full_name}/deployments?since=${encodeURIComponent(since.toISOString())}&per_page=${PAGE_SIZE}&page=${page}`);
+    if (deployments.remaining !== null && deployments.remaining <= 1) stopped = true;
     if (deployments.status === 304) break;
     const rows = items(deployments.body);
     for (const deployment of rows) {
@@ -74,8 +76,11 @@ async function reconcileRepository(repo: Repository): Promise<{ changed: number;
         repository: { id: repo.id, full_name: repo.full_name, production_environment: repo.production_environment },
         deployment: { ...deployment, id: deploymentId, created_at: apiDate(deployment.created_at, end) }
       });
-      const statuses = await githubGet(`${env.GITHUB_API_URL}/repos/${repo.full_name}/deployments/${deploymentId}/statuses?per_page=${PAGE_SIZE}`);
-      for (const status of items(statuses.body)) {
+      for (const statusPage of Array.from({ length: MAX_PAGES }, (_, index) => index + 1)) {
+        const statuses = await githubGet(`${env.GITHUB_API_URL}/repos/${repo.full_name}/deployments/${deploymentId}/statuses?per_page=${PAGE_SIZE}&page=${statusPage}`);
+        if (statuses.remaining !== null && statuses.remaining <= 1) stopped = true;
+        const statusRows = items(statuses.body);
+        for (const status of statusRows) {
         const statusId = numberValue(status.id);
         if (!statusId) continue;
         await processDeploymentStatus({
@@ -84,11 +89,13 @@ async function reconcileRepository(repo: Repository): Promise<{ changed: number;
           deployment_status: { ...status, id: statusId, created_at: apiDate(status.created_at, end) }
         });
         changed += 1;
+        }
+        if (stopped || statusRows.length < PAGE_SIZE) break;
       }
+      if (stopped) break;
     }
-    if (rows.length < PAGE_SIZE) break;
+    if (stopped || rows.length < PAGE_SIZE) break;
   }
-  stopped = false;
   if (!stopped) {
     await pool.query("UPDATE repositories SET reconciled_through = $2 WHERE id = $1", [repo.id, end]);
   }

@@ -17,7 +17,7 @@ the reconciliation worker to GitHub's REST API.
 | DB credential leak | Vercel secret storage, direct URL only for migrations | Runtime compromise exposes database access | configuration review |
 | Poisoned payload | Zod schemas, bounded body size, explicit columns | New GitHub fields require schema review | processor validation tests |
 | Log leakage | structured logs exclude payloads, URLs, and credentials | Third-party runtime logs remain a trust boundary | log assertion test |
-| Endpoint DoS | request limits, PostgreSQL-backed dashboard limiter | Valid signed webhooks are intentionally not throttled | rate-limit integration test |
+| Endpoint DoS | request limits, PostgreSQL-backed dashboard limiter and invalid-signature limiter | Valid signed webhooks are intentionally not throttled | rate-limit integration test |
 | Malicious repository name | Slack escaping and no executable interpolation | Social engineering in rendered text | Slack formatting test |
 
 The reconciliation PAT is read-only and reconciliation stops on 401 or rate

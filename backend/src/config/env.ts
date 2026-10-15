@@ -15,14 +15,8 @@ const schema = z.object({
   BUILD_SHA: z.string().min(1).default("unknown"),
   GITHUB_RECONCILE_TOKEN: z.string().min(1).optional(),
   GITHUB_API_URL: z.string().url().default("https://api.github.com"),
-  ENCRYPTION_KEY: z.string().refine((value) => {
-    try {
-      return Buffer.from(value, "base64").length === 32;
-    } catch {
-      return false;
-    }
-  }, "ENCRYPTION_KEY must be base64 for exactly 32 bytes").optional(),
-  ENCRYPTION_KEY_OLD: z.string().optional(),
+  ENCRYPTION_KEY: z.string().refine((value) => /^[A-Za-z0-9+/]+={0,2}$/.test(value) && Buffer.from(value, "base64").length === 32, "ENCRYPTION_KEY must be base64 for exactly 32 bytes").optional(),
+  ENCRYPTION_KEY_OLD: z.string().refine((value) => /^[A-Za-z0-9+/]+={0,2}$/.test(value) && Buffer.from(value, "base64").length === 32, "ENCRYPTION_KEY_OLD must be base64 for exactly 32 bytes").optional(),
   NODE_ENV: z.enum(["development", "test", "production"]).catch("development"),
   PORT: z.coerce.number().int().positive().default(4900)
 });
