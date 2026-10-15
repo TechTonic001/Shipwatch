@@ -14,6 +14,7 @@ const schema = z.object({
   FRONTEND_ORIGIN: z.string().url().default("http://localhost:5173"),
   BUILD_SHA: z.string().min(1).default("unknown"),
   GITHUB_RECONCILE_TOKEN: z.string().min(1).optional(),
+  GITHUB_API_URL: z.string().url().default("https://api.github.com"),
   ENCRYPTION_KEY: z.string().refine((value) => {
     try {
       return Buffer.from(value, "base64").length === 32;

@@ -6,6 +6,8 @@
   import { pool } from "../db/pool.js";
   import { processBatch } from "../services/worker.js";
   import { dispatchAlerts } from "../services/alertDispatcher.js";
+  import { reconcileRepositories } from "../services/reconcile.js";
+  import { pruneRateLimits } from "../services/rateLimit.js";
 
   export const internalRouter = Router();
 
@@ -37,6 +39,8 @@
 
     const summary = await processBatch({ limit: 20, deadlineMs: 15_000 });
     const alerts = await dispatchAlerts({ limit: 20, deadlineMs: 5_000 });
+    const reconciliation = await reconcileRepositories();
+    await pruneRateLimits();
     const deadCounts = await pool.query<{
       deadDeliveries: number;
       deadAlerts: number;
@@ -55,7 +59,8 @@
       alertsFailed: alerts.failed,
       alertsDead: alerts.dead,
       alertsSuppressed: alerts.suppressedSkipped,
-      ...deadCounts.rows[0]
+      ...deadCounts.rows[0],
+      reconciliation
     });
   };
 

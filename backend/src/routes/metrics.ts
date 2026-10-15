@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { env } from "../config/env.js";
 import { decodeCursor, getMetrics, listIncidents, listRepositories, listRuns, repositoryExists } from "../services/metrics.js";
+import { allowRateLimit } from "../services/rateLimit.js";
 
 export const metricsRouter = Router();
 
@@ -25,7 +26,7 @@ function authorized(req: Request, res: Response): boolean {
   return true;
 }
 
-metricsRouter.use("/api", (req, res, next) => {
+metricsRouter.use("/api", async (req, res, next) => {
   const origin = req.header("origin");
   if (origin && origin !== env.FRONTEND_ORIGIN) {
     res.status(403).json({ error: "Origin not allowed" });
@@ -39,6 +40,15 @@ metricsRouter.use("/api", (req, res, next) => {
     return;
   }
   if (!authorized(req, res)) return;
+  try {
+    if (!(await allowRateLimit("dashboard", req.ip, 120, 60))) {
+      res.status(429).json({ error: "Rate limit exceeded" });
+      return;
+    }
+  } catch (error) {
+    next(error);
+    return;
+  }
   res.setHeader("Access-Control-Allow-Origin", env.FRONTEND_ORIGIN);
   res.setHeader("Cache-Control", "s-maxage=5, stale-while-revalidate=30");
   next();
