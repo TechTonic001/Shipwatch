@@ -1,0 +1,52 @@
+name: Preview
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment:
+      name: preview
+    env:
+      PREVIEW_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - name: Link and deploy backend preview
+        working-directory: backend
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.BACKEND_VERCEL_PROJECT_ID }}
+        run: |
+          mkdir -p .vercel
+          jq -n --arg org "$VERCEL_ORG_ID" --arg project "$VERCEL_PROJECT_ID" \
+            '{orgId:$org,projectId:$project}' > .vercel/project.json
+          npx --yes vercel@41.6.0 deploy --yes --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID" \
+            --build-env BUILD_SHA="$PREVIEW_SHA" --env BUILD_SHA="$PREVIEW_SHA"
+      - name: Link and deploy frontend preview
+        working-directory: frontend
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.FRONTEND_VERCEL_PROJECT_ID }}
+        run: |
+          mkdir -p .vercel
+          jq -n --arg org "$VERCEL_ORG_ID" --arg project "$VERCEL_PROJECT_ID" \
+            '{orgId:$org,projectId:$project}' > .vercel/project.json
+          npx --yes vercel@41.6.0 deploy --yes --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"

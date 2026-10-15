@@ -1,0 +1,46 @@
+name: Migration safety
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  migrations:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: shipwatch
+          POSTGRES_PASSWORD: shipwatch
+          POSTGRES_DB: shipwatch_migration
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U shipwatch -d shipwatch_migration"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4.1.2
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npm ci
+      - name: Apply every migration from scratch
+        env:
+          DATABASE_URL_DIRECT: postgresql://shipwatch:shipwatch@localhost:5432/shipwatch_migration
+        run: npx node-pg-migrate --database-url-var DATABASE_URL_DIRECT --migrations-dir backend/db/migrations
+      - name: Re-run migrations to verify idempotence
+        env:
+          DATABASE_URL_DIRECT: postgresql://shipwatch:shipwatch@localhost:5432/shipwatch_migration
+        run: npx node-pg-migrate --database-url-var DATABASE_URL_DIRECT --migrations-dir backend/db/migrations
+      - name: Compare schema snapshot
+        env:
+          DATABASE_URL_DIRECT: postgresql://shipwatch:shipwatch@localhost:5432/shipwatch_migration
+        run: |
+          pg_dump "$DATABASE_URL_DIRECT" --schema-only --no-owner --no-privileges --no-comments > /tmp/schema.snapshot.sql
+          diff -u docs/schema.snapshot.sql /tmp/schema.snapshot.sql

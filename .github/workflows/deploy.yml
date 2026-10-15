@@ -1,0 +1,141 @@
+name: Deploy production
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Commit SHA to redeploy"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+env:
+  DEPLOY_ENVIRONMENT: production
+  DEPLOY_SHA: ${{ github.event.inputs.ref || github.event.workflow_run.head_sha || github.sha }}
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+      - name: Create GitHub Deployment
+        id: deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          payload=$(jq -cn --arg ref "$DEPLOY_SHA" --arg environment "$DEPLOY_ENVIRONMENT" \
+            '{ref:$ref,environment:$environment,auto_merge:false,required_contexts:[]}')
+          response=$(curl --fail-with-body --silent --show-error \
+            -X POST -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/deployments" \
+            -d "$payload")
+          deployment_id=$(jq -er '.id' <<<"$response")
+          echo "deployment_id=$deployment_id" >> "$GITHUB_OUTPUT"
+          curl --fail-with-body --silent --show-error \
+            -X POST -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/deployments/$deployment_id/statuses" \
+            -d '{"state":"in_progress"}' >/dev/null
+      - name: Apply production migrations
+        env:
+          DATABASE_URL_DIRECT: ${{ secrets.DATABASE_URL_DIRECT }}
+        run: npm ci && npx node-pg-migrate --database-url-var DATABASE_URL_DIRECT --migrations-dir backend/db/migrations
+      - name: Link backend Vercel project
+        working-directory: backend
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.BACKEND_VERCEL_PROJECT_ID }}
+        run: |
+          mkdir -p .vercel
+          jq -n --arg org "$VERCEL_ORG_ID" --arg project "$VERCEL_PROJECT_ID" \
+            '{orgId:$org,projectId:$project}' > .vercel/project.json
+      - name: Deploy backend
+        id: backend
+        working-directory: backend
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.BACKEND_VERCEL_PROJECT_ID }}
+        run: |
+          echo "Deploying backend project"
+          npx --yes vercel@41.6.0 deploy --prod --yes --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID" \
+            --build-env BUILD_SHA="$DEPLOY_SHA" --env BUILD_SHA="$DEPLOY_SHA"
+      - name: Smoke-test backend
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+        run: |
+          for attempt in {1..12}; do
+            if curl --fail --silent --show-error "$BACKEND_URL/healthz" | jq -e '.status == "ok"' >/dev/null &&
+               curl --fail --silent --show-error "$BACKEND_URL/readyz" | jq -e '.status == "ready"' >/dev/null; then exit 0; fi
+            sleep 5
+          done
+          exit 1
+      - name: Link frontend Vercel project
+        working-directory: frontend
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.FRONTEND_VERCEL_PROJECT_ID }}
+        run: |
+          mkdir -p .vercel
+          jq -n --arg org "$VERCEL_ORG_ID" --arg project "$VERCEL_PROJECT_ID" \
+            '{orgId:$org,projectId:$project}' > .vercel/project.json
+      - name: Deploy frontend
+        working-directory: frontend
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        run: |
+          echo "Deploying frontend project"
+          npx --yes vercel@41.6.0 deploy --prod --yes --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
+      - name: Smoke-test frontend
+        env:
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+        run: curl --fail --silent --show-error --location "$FRONTEND_URL" >/dev/null
+      - name: Verify deployed commit SHA
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+        run: test "$(curl --fail --silent "$BACKEND_URL/healthz" | jq -r '.sha')" = "$DEPLOY_SHA"
+      - name: Mark deployment successful
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOYMENT_ID: ${{ steps.deployment.outputs.deployment_id }}
+        run: |
+          jq -cn --arg environment_url "${{ secrets.FRONTEND_URL }}" \
+            '{state:"success",environment_url:$environment_url,description:"Production deploy verified"}' |
+            curl --fail-with-body --silent --show-error \
+              -X POST -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/deployments/$DEPLOYMENT_ID/statuses" -d @-
+      - name: Mark deployment failed
+        if: failure() || cancelled()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOYMENT_ID: ${{ steps.deployment.outputs.deployment_id }}
+        run: |
+          jq -cn --arg state "${{ job.status == 'cancelled' && 'inactive' || 'failure' }}" \
+            '{state:$state,description:"Production deploy did not complete"}' |
+            curl --fail-with-body --silent --show-error \
+              -X POST -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/deployments/$DEPLOYMENT_ID/statuses" -d @-
