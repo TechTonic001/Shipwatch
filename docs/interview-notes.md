@@ -11,9 +11,11 @@
    ([`ingestion.ts`](../backend/src/services/ingestion.ts)).
 
 3. **How does the system handle out-of-order deployment events?**  
-   Domain rows are upserted by GitHub IDs, statuses are keyed by status ID, and
-   incident SQL uses event timestamps and conditional updates. The result converges
-   for the same valid set of events; it is not a global ordered event log
+   Domain rows are upserted by GitHub IDs and statuses are keyed by status ID.
+   Incident SQL uses event timestamps and conditional updates. Incident state converges
+   for the same valid event set; the denormalized deployment state currently reflects
+   arrival order, so status history should be ordered by event time when that distinction
+   matters
    ([`deploymentStatus.ts`](../backend/src/services/processors/deploymentStatus.ts),
    [`incidents.ts`](../backend/src/services/incidents.ts)).
 

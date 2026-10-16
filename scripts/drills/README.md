@@ -10,6 +10,7 @@ Set these shell variables before starting:
 $env:SHIPWATCH_DRILL_DATABASE_URL = "postgres://.../shipwatch_test"
 $env:SHIPWATCH_DRILL_API_BASE_URL = "http://localhost:3000"
 $env:SHIPWATCH_DRILL_ALLOWED_URLS = "http://localhost:3000"
+$env:SHIPWATCH_DRILL_BODY_FILE = "C:\path\to\fixture.json" # cold-start drill
 $env:CRON_SECRET = "<test cron token>"
 $env:GITHUB_WEBHOOK_SECRET = "<test webhook secret>"
 ```
@@ -29,7 +30,8 @@ contains a processable fixture. Run:
 ```
 
 The script simulates a process dying after claim by aging the lock, invokes one sweep,
-and ends with a PASS/FAIL query requiring the row to reach `processed`.
+and ends with a PASS/FAIL query requiring the row to reach `processed`. Choose a row with
+fewer than five attempts; it refuses terminal/exhausted rows.
 
 ## Neon cold start
 

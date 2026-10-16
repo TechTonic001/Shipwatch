@@ -95,5 +95,28 @@ CREATE TABLE public.webhook_deliveries (
     next_attempt_at timestamp with time zone,
     locked_at timestamp with time zone,
     processed_at timestamp with time zone,
-    last_error text
+    last_error text,
+    lock_lost_count integer DEFAULT 0 NOT NULL
+);
+
+CREATE TABLE public.operator_alert_state (
+    alert_key text NOT NULL,
+    active boolean DEFAULT false NOT NULL,
+    generation integer DEFAULT 0 NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE public.operator_alert_events (
+    id uuid NOT NULL,
+    alert_key text NOT NULL,
+    generation integer NOT NULL,
+    event_kind text NOT NULL,
+    message text NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    attempts integer DEFAULT 0 NOT NULL,
+    next_attempt_at timestamp with time zone DEFAULT now() NOT NULL,
+    locked_at timestamp with time zone,
+    sent_at timestamp with time zone,
+    last_error text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );

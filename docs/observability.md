@@ -25,7 +25,7 @@ The sweep checks three conditions:
 
 | Condition | Fires when |
 | --- | --- |
-| Dead delivery | `deadDeliveries > 0` |
+| Dead delivery or alert | `deadDeliveries > 0` or `deadAlerts > 0` |
 | Oldest pending delivery | age is greater than 600 seconds |
 | Alert backlog | pending plus failed alerts is greater than `OPERATOR_ALERT_BACKLOG_THRESHOLD` (default 10) |
 

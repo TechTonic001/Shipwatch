@@ -20,18 +20,20 @@ export function preflight() {
   const allowlist = (__ENV.ALLOWED_TARGET_URLS ?? "").split(",").map((item) => item.trim()).filter(Boolean);
   const secret = __ENV.GITHUB_WEBHOOK_SECRET ?? "";
   const runId = (__ENV.RUN_ID ?? "").toLowerCase();
+  const productionUrl = __ENV.PRODUCTION_URL ?? "";
   if (!target || !allowlist.includes(target)) {
     throw new Error("TARGET_URL must exactly match an entry in ALLOWED_TARGET_URLS.");
   }
   if (!secret) throw new Error("GITHUB_WEBHOOK_SECRET is required.");
   if (!/^[0-9a-f]{8}$/.test(runId)) throw new Error("RUN_ID must be a unique 8-character hexadecimal value.");
-  if ((__ENV.PRODUCTION_URL ?? "") === target) {
+  if (!productionUrl) throw new Error("PRODUCTION_URL is required so production targeting can be detected.");
+  if (productionUrl === target) {
     console.warn("WARNING: this load test targets the configured production URL.");
     if (__ENV.ALLOW_PRODUCTION !== "true") {
       throw new Error("Set ALLOW_PRODUCTION=true to explicitly permit production load.");
     }
   }
-  return { target, secret, runId };
+  return { target, runId };
 }
 
 function uuidFor(runId, sequence) {
@@ -65,7 +67,7 @@ export function sendSignedDelivery(context, sequence, mode) {
     }
   };
   const body = JSON.stringify(payload);
-  const digest = crypto.hmac("sha256", context.secret, body, "hex");
+  const digest = crypto.hmac("sha256", __ENV.GITHUB_WEBHOOK_SECRET, body, "hex");
   const invalid = mode === "mixed-invalid" && sequence % 10 === 9;
   const signature = `sha256=${invalid ? (digest[0] === "0" ? "1" : "0") + digest.slice(1) : digest}`;
   const response = http.post(context.target, body, {
@@ -83,7 +85,7 @@ export function sendSignedDelivery(context, sequence, mode) {
   } else {
     validErrors.add(response.status < 200 || response.status >= 300);
   }
-  if (mode === "duplicate-storm" && response.status >= 500) duplicate5xx.add(1);
+  if (mode === "duplicate-storm") duplicate5xx.add(response.status >= 500);
   return response;
 }
 

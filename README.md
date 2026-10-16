@@ -37,7 +37,7 @@ production database credentials for local demo data.
    includes `test`:
 
    ```powershell
-   npm ci
+
    $env:DATABASE_URL = "postgres://user:password@localhost:5432/shipwatch_test"
    cd backend
    npm run migrate

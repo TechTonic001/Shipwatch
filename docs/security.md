@@ -11,6 +11,8 @@
 | `ENCRYPTION_KEY` | AES-256-GCM active key, base64 32 bytes | yes | Vercel backend and migration job | Set `ENCRYPTION_KEY_OLD`, deploy, run `encrypt-secrets`, then remove old key |
 | `ENCRYPTION_KEY_OLD` | Temporary decryption key during rotation | yes | Vercel backend during rotation | Remove after all rows are re-encrypted |
 | `SLACK_WEBHOOK_URL` | Default Slack destination | yes | Vercel backend | Rotate Slack webhook and redeploy |
+| `OPERATOR_SLACK_WEBHOOK_URL` | Separate operator health-alert destination | yes | Vercel backend / production environment | Rotate the dedicated operator Slack webhook; do not reuse a repository webhook |
+| `OPERATOR_ALERT_BACKLOG_THRESHOLD` | Number of pending/failed alerts that triggers an operator notice | no | Vercel backend | Adjust based on observed backlog; default is 10 |
 | `NEON_AUTH_BASE_URL` | Optional auth service URL | no | Vercel backend | Change with provider configuration |
 | `NEON_AUTH_JWKS_URL` | Optional JWKS URL | no | Vercel backend | Change with provider configuration |
 | `FRONTEND_ORIGIN` | Strict CORS origin | no | Vercel backend | Change with frontend domain |

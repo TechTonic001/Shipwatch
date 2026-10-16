@@ -20,9 +20,9 @@ function thresholds(stats: OperationalStats): Threshold[] {
   return [
     {
       key: "dead-deliveries",
-      active: stats.deadDeliveries > 0,
-      firingMessage: `Shipwatch operator alert: ${stats.deadDeliveries} dead webhook deliveries.`,
-      recoveryMessage: "Shipwatch recovery: no dead webhook deliveries remain."
+      active: stats.deadDeliveries > 0 || stats.deadAlerts > 0,
+      firingMessage: `Shipwatch operator alert: ${stats.deadDeliveries} dead webhook deliveries and ${stats.deadAlerts} dead alerts.`,
+      recoveryMessage: "Shipwatch recovery: no dead webhook deliveries or alerts remain."
     },
     {
       key: "old-pending-delivery",

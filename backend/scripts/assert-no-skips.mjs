@@ -20,4 +20,4 @@ if (skipped > 0) {
   throw new Error(`Vitest reported ${skipped} skipped test result(s).`);
 }
 
-console.log("Vitest skip check passed: 0 skipped tests.");
+process.stdout.write("Vitest skip check passed: 0 skipped tests.\n");

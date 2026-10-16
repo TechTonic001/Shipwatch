@@ -18,11 +18,12 @@ bounded. `lock_lost_count` records failed ownership checks.
 ## Deployment status state machine
 
 GitHub status events are append-only rows keyed by status ID. Deployment rows are
-upserted by deployment ID. The current deployment state is updated from received
-status events; incident rules compare event timestamps so a late older event does not
-override a newer production outcome. A deployment may move through pending/queued/
-in-progress to success, failure, or error; terminal events can be observed out of
-order.
+upserted by deployment ID. Incident rules compare event timestamps so a late older
+event does not override a newer production outcome. A deployment may move through
+pending/queued/in-progress to success, failure, or error; terminal events can be
+observed out of order. The denormalized deployment `state` is currently updated by
+arrival order; consumers needing the authoritative latest state should order
+`deployment_statuses` by `created_at` and status ID, or use reconciliation.
 
 ## Incident state machine
 

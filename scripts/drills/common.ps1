@@ -47,7 +47,7 @@ function Send-DrillWebhook([string]$EventName, [string]$DeliveryId, [string]$Jso
   $body = $encoding.GetBytes($Json)
   $hmac = [System.Security.Cryptography.HMACSHA256]::new($encoding.GetBytes($env:GITHUB_WEBHOOK_SECRET))
   try {
-    $digest = [Convert]::ToHexString($hmac.ComputeHash($body)).ToLowerInvariant()
+    $digest = [BitConverter]::ToString($hmac.ComputeHash($body)).Replace("-", "").ToLowerInvariant()
   } finally {
     $hmac.Dispose()
   }

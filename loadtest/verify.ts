@@ -37,7 +37,10 @@ async function main(): Promise<void> {
       missing: number;
       unprocessed: number;
       domain_statuses: number;
-      duplicate_domain_rows: number;
+      deployment_rows: number;
+      deployment_distinct: number;
+      status_rows: number;
+      status_distinct: number;
       p50: number | null;
       p95: number | null;
       p99: number | null;
@@ -52,24 +55,20 @@ async function main(): Promise<void> {
          SELECT e.sequence, d.delivery_id, d.status, d.received_at, d.processed_at
            FROM expected e
            LEFT JOIN webhook_deliveries d ON d.delivery_id = e.delivery_id
-       ),
-       domain_duplicates AS (
-         SELECT count(*)::int AS count
-           FROM (
-             SELECT id FROM deployments GROUP BY id HAVING count(*) > 1
-             UNION ALL
-             SELECT id FROM deployment_statuses GROUP BY id HAVING count(*) > 1
-             UNION ALL
-             SELECT id FROM workflow_runs GROUP BY id HAVING count(*) > 1
-           ) duplicates
        )
        SELECT (SELECT count(*)::int FROM rows WHERE delivery_id IS NOT NULL) AS sent,
               (SELECT count(*)::int FROM rows WHERE delivery_id IS NULL) AS missing,
               (SELECT count(*)::int FROM rows WHERE status IS DISTINCT FROM 'processed') AS unprocessed,
+              (SELECT count(*)::int FROM deployments
+                WHERE id >= $4::bigint AND id < $4::bigint + $2::int) AS deployment_rows,
+              (SELECT count(DISTINCT id)::int FROM deployments
+                WHERE id >= $4::bigint AND id < $4::bigint + $2::int) AS deployment_distinct,
               (SELECT count(*)::int FROM deployment_statuses
                 WHERE id >= $4::bigint + 500000000000
                   AND id < $4::bigint + 500000000000 + $2::int) AS domain_statuses,
-              (SELECT count FROM domain_duplicates) AS duplicate_domain_rows,
+              (SELECT count(DISTINCT id)::int FROM deployment_statuses
+                WHERE id >= $4::bigint + 500000000000
+                  AND id < $4::bigint + 500000000000 + $2::int) AS status_distinct,
               (SELECT percentile_cont(0.50) WITHIN GROUP
                  (ORDER BY EXTRACT(EPOCH FROM (processed_at - received_at)))
                  FROM rows WHERE processed_at IS NOT NULL) AS p50,
@@ -86,8 +85,8 @@ async function main(): Promise<void> {
       sent: row?.sent === expected,
       missing: row?.missing === 0,
       processed: row?.unprocessed === 0,
-      domainRows: row?.domain_statuses === expected,
-      noDuplicateDomainRows: row?.duplicate_domain_rows === 0
+      deploymentRows: row?.deployment_rows === expected && row.deployment_distinct === expected,
+      statusRows: row?.domain_statuses === expected && row.status_distinct === expected
     };
     process.stdout.write(`Verification: ${JSON.stringify(checks)}\n`);
     process.stdout.write(`End-to-end latency (seconds): ${JSON.stringify({ p50: row?.p50 ?? null, p95: row?.p95 ?? null, p99: row?.p99 ?? null })}\n`);
@@ -100,4 +99,9 @@ async function main(): Promise<void> {
   }
 }
 
-await main();
+void main().catch((error: unknown) => {
+  process.stderr.write(
+    `Load-test verification failed: ${error instanceof Error ? error.message : "unknown error"}\n`
+  );
+  process.exitCode = 1;
+});
