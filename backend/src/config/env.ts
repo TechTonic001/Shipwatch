@@ -7,6 +7,8 @@ const schema = z.object({
   GITHUB_WEBHOOK_SECRET: z.string().min(1),
   SLACK_WEBHOOK_URL: z.string().url(),
   CRON_SECRET: z.string().min(1),
+  OPERATOR_SLACK_WEBHOOK_URL: z.string().url().optional(),
+  OPERATOR_ALERT_BACKLOG_THRESHOLD: z.coerce.number().int().min(1).default(10),
   NEON_AUTH_BASE_URL: z.string().url().optional(),
   NEON_AUTH_JWKS_URL: z.string().url().optional(),
   NEON_FUNCTION_HELLO_BASE_URL: z.string().url().optional(),
