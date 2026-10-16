@@ -9,7 +9,7 @@ export const validateWebhookHeaders: RequestHandler = (req, res, next) => {
   const event = req.header("x-github-event") ?? null;
 
   if (!deliveryId || !uuidPattern.test(deliveryId) || !event) {
-    logWebhookRequest(req, { deliveryId, event, action: null, outcome: "bad_request" });
+    logWebhookRequest(req, { deliveryId, githubEvent: event, action: null, outcome: "bad_request" });
     res.status(400).json({ error: "invalid webhook headers" });
     return;
   }

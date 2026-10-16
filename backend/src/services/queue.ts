@@ -1,4 +1,5 @@
 import { pool } from "../db/pool.js";
+import { logger } from "../lib/logger.js";
 
 export const MAX_ATTEMPTS = Number(process.env.SHIPWATCH_MAX_ATTEMPTS ?? 5);
 export const STALE_LOCK_MS = Number(process.env.SHIPWATCH_STALE_LOCK_MS ?? 90_000);
@@ -170,4 +171,20 @@ export async function markFailed(
   );
 
   return (result.rowCount ?? 0) === 1;
+}
+
+export async function recordLockLost(deliveryId: string): Promise<void> {
+  await pool.query(
+    `UPDATE webhook_deliveries
+        SET lock_lost_count = lock_lost_count + 1
+      WHERE delivery_id = $1`,
+    [deliveryId]
+  );
+  logger.warn({
+    event: "queue_lock",
+    outcome: "lost",
+    durationMs: 0,
+    requestId: null,
+    deliveryId
+  }, "queue processing lock was lost");
 }

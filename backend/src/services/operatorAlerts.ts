@@ -44,6 +44,12 @@ async function persistTransitions(items: Threshold[]): Promise<void> {
   try {
     await client.query("BEGIN");
     for (const item of items) {
+      await client.query(
+        `INSERT INTO operator_alert_state (alert_key, active, generation)
+         VALUES ($1, false, 0)
+         ON CONFLICT (alert_key) DO NOTHING`,
+        [item.key]
+      );
       const existing = await client.query<{ active: boolean; generation: number }>(
         `SELECT active, generation
            FROM operator_alert_state
@@ -53,15 +59,9 @@ async function persistTransitions(items: Threshold[]): Promise<void> {
       );
       const current = existing.rows[0];
       if (!current) {
-        await client.query(
-          `INSERT INTO operator_alert_state (alert_key, active, generation)
-           VALUES ($1, $2, 1)`,
-          [item.key, item.active]
-        );
-        if (item.active) {
-          await enqueue(client, item.key, 1, "firing", item.firingMessage);
-        }
-      } else if (current.active !== item.active) {
+        throw new Error("Operator alert state row was not created");
+      }
+      if (current.active !== item.active) {
         const generation = current.generation + 1;
         await client.query(
           `UPDATE operator_alert_state

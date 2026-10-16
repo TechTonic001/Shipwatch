@@ -1,6 +1,6 @@
 import { pool } from "../db/pool.js";
 import { logger } from "../lib/logger.js";
-import { claimBatch, markDead, markFailed, markIgnored, markProcessed, reapPoison, type QueueDelivery } from "./queue.js";
+import { claimBatch, markDead, markFailed, markIgnored, markProcessed, reapPoison, recordLockLost, type QueueDelivery } from "./queue.js";
 import { processQueuedDelivery } from "./processors/index.js";
 import { dispatchAlerts } from "./alertDispatcher.js";
 import { schedule } from "./scheduler.js";
@@ -58,7 +58,7 @@ export async function processBatch({
   try {
     summary.dead += await reapPoison();
   } catch (error) {
-    logger.warn({ err: error }, "reapPoison failed");
+    logger.warn({ event: "queue_reap", outcome: "failed", durationMs: 0, requestId: null, deliveryId: null, errorName: error instanceof Error ? error.name : "UnknownError" }, "queue poison reaping failed");
   }
 
   const claimedRows: QueueDelivery[] = [];
@@ -66,7 +66,7 @@ export async function processBatch({
     claimedRows.push(...(await claimBatch(limit)));
     summary.claimed = claimedRows.length;
   } catch (error) {
-    logger.warn({ err: error }, "claimBatch failed");
+    logger.warn({ event: "queue_claim", outcome: "failed", durationMs: 0, requestId: null, deliveryId: null, errorName: error instanceof Error ? error.name : "UnknownError" }, "queue batch claim failed");
   }
 
   for (const row of claimedRows) {
@@ -89,6 +89,7 @@ export async function processBatch({
           });
         } else {
           summary.lockLost += 1;
+          await recordLockLost(row.deliveryId);
         }
       } else if (outcome === "ignored") {
         const updated = await markIgnored(row.deliveryId, row.lockedAt);
@@ -96,6 +97,7 @@ export async function processBatch({
           summary.ignored += 1;
         } else {
           summary.lockLost += 1;
+          await recordLockLost(row.deliveryId);
         }
       } else if (outcome === "failed") {
         const updated = await markFailed(row.deliveryId, row.lockedAt, new Error("processing failed"), row.attempts);
@@ -103,6 +105,7 @@ export async function processBatch({
           summary.failed += 1;
         } else {
           summary.lockLost += 1;
+          await recordLockLost(row.deliveryId);
         }
       } else {
         const updated = await markDead(row.deliveryId, row.lockedAt, new Error("mark dead"));
@@ -113,12 +116,13 @@ export async function processBatch({
         }
       }
     } catch (error) {
-      logger.warn({ deliveryId: row.deliveryId, err: error }, "processBatch row failed");
+      logger.warn({ event: "queue_process", outcome: "failed", durationMs: 0, requestId: null, deliveryId: row.deliveryId, errorName: error instanceof Error ? error.name : "UnknownError" }, "queue row processing failed");
       const updated = await markFailed(row.deliveryId, row.lockedAt, error instanceof Error ? error : new Error("unknown processing error"), row.attempts);
       if (updated) {
         summary.failed += 1;
       } else {
         summary.lockLost += 1;
+        await recordLockLost(row.deliveryId);
       }
     }
   }

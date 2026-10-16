@@ -44,8 +44,7 @@ export async function getOperationalStats(): Promise<OperationalStats> {
              percentile_cont(0.99) WITHIN GROUP
                  (ORDER BY EXTRACT(EPOCH FROM (processed_at - received_at))) AS p99
         FROM webhook_deliveries
-       WHERE processed_at IS NOT NULL
-         AND received_at >= now() - interval '1 hour'
+       WHERE processed_at >= now() - interval '1 hour'
     ),
     retries AS (
       SELECT count(*) FILTER (WHERE attempts > 1)::int AS retried,

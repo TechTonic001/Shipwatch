@@ -10,7 +10,7 @@ import { allowRateLimit } from "../services/rateLimit.js";
 const invalidSignature = async (req: Parameters<RequestHandler>[0], res: Parameters<RequestHandler>[1]): Promise<void> => {
   logWebhookRequest(req, {
     deliveryId: req.header("x-github-delivery") ?? null,
-    event: req.header("x-github-event") ?? null,
+    githubEvent: req.header("x-github-event") ?? null,
     action: null,
     outcome: "invalid_signature"
   });

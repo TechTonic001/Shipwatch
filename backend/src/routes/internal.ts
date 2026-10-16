@@ -1,16 +1,15 @@
-  import { timingSafeEqual } from "node:crypto";
+  import { randomUUID, timingSafeEqual } from "node:crypto";
 
   import { Router, type Response } from "express";
 
   import { env } from "../config/env.js";
-  import { pool } from "../db/pool.js";
+  import { logger } from "../lib/logger.js";
   import { processBatch } from "../services/worker.js";
   import { dispatchAlerts } from "../services/alertDispatcher.js";
   import { reconcileRepositories } from "../services/reconcile.js";
   import { pruneRateLimits } from "../services/rateLimit.js";
   import { getOperationalStats } from "../services/observability.js";
   import { evaluateOperatorAlerts } from "../services/operatorAlerts.js";
-  import { randomUUID, timingSafeEqual } from "node:crypto";
 
   export const internalRouter = Router();
 
@@ -63,16 +62,24 @@
     });
   };
 
-  internalRouter.post("/api/internal/sweep", async (req, res) => {
-    await sweep(req.header("authorization"), res);
+  internalRouter.post("/api/internal/sweep", async (req, res, next) => {
+    try {
+      await sweep(req.header("authorization"), res);
+    } catch (error) {
+      next(error);
+    }
   });
 
   // Vercel Cron invokes the configured path with GET.
-  internalRouter.get("/api/internal/sweep", async (req, res) => {
-    await sweep(req.header("authorization"), res);
+  internalRouter.get("/api/internal/sweep", async (req, res, next) => {
+    try {
+      await sweep(req.header("authorization"), res);
+    } catch (error) {
+      next(error);
+    }
   });
 
-  internalRouter.get("/api/internal/stats", async (req, res) => {
+  internalRouter.get("/api/internal/stats", async (req, res, next) => {
     if (!cronGuard(req.header("authorization"))) {
       res.status(401).json({ error: "Unauthorized" });
       return;

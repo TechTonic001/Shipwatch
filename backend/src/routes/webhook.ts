@@ -10,7 +10,7 @@ webhookRouter.post("/api/webhooks/github", async (req, res) => {
   const eventType = req.header("x-github-event") ?? "";
   try {
     if (!Buffer.isBuffer(req.body)) {
-      logWebhookRequest(req, { deliveryId, event: eventType, action: null, outcome: "bad_request" });
+      logWebhookRequest(req, { deliveryId, githubEvent: eventType, action: null, outcome: "bad_request" });
       res.status(400).json({ error: "raw body required" });
       return;
     }
@@ -23,7 +23,7 @@ webhookRouter.post("/api/webhooks/github", async (req, res) => {
       }
       payload = parsed as Record<string, unknown>;
     } catch {
-      logWebhookRequest(req, { deliveryId, event: eventType, action: null, outcome: "bad_request" });
+      logWebhookRequest(req, { deliveryId, githubEvent: eventType, action: null, outcome: "bad_request" });
       res.status(400).json({ error: "Invalid JSON payload" });
       return;
     }
@@ -39,14 +39,14 @@ webhookRouter.post("/api/webhooks/github", async (req, res) => {
         : null;
 
     if (eventType === "ping") {
-      logWebhookRequest(req, { deliveryId, event: eventType, action, outcome: "ignored" });
+      logWebhookRequest(req, { deliveryId, githubEvent: eventType, action, outcome: "ignored" });
       res.status(200).json({ ok: true, event: "ping" });
       return;
     }
 
     const allowedEvents = new Set(["workflow_run", "deployment", "deployment_status"]);
     if (!allowedEvents.has(eventType)) {
-      logWebhookRequest(req, { deliveryId, event: eventType, action, outcome: "ignored" });
+      logWebhookRequest(req, { deliveryId, githubEvent: eventType, action, outcome: "ignored" });
       res.status(200).json({ ok: true, ignored: true });
       return;
     }
@@ -55,7 +55,7 @@ webhookRouter.post("/api/webhooks/github", async (req, res) => {
     const inserted = await insertDelivery(delivery);
     logWebhookRequest(req, {
       deliveryId,
-      event: eventType,
+      githubEvent: eventType,
       action,
       outcome: inserted ? "ingested" : "duplicate"
     });
@@ -65,7 +65,7 @@ webhookRouter.post("/api/webhooks/github", async (req, res) => {
   } catch {
     logWebhookRequest(req, {
       deliveryId,
-      event: eventType,
+      githubEvent: eventType,
       action: null,
       outcome: "persist_failed"
     });

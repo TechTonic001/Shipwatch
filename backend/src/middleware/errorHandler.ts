@@ -13,7 +13,7 @@ export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
     if (req.path === "/api/webhooks/github") {
       logWebhookRequest(req, {
         deliveryId: req.header("x-github-delivery") ?? null,
-        event: req.header("x-github-event") ?? null,
+        githubEvent: req.header("x-github-event") ?? null,
         action: null,
         outcome: "bad_request"
       });
