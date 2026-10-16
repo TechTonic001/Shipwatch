@@ -25,6 +25,9 @@
 
     const provided = Buffer.from(authorization);
     const expectedBuffer = Buffer.from(expected);
+    if (provided.length !== expectedBuffer.length) {
+      return false;
+    }
 
     return timingSafeEqual(provided, expectedBuffer);
   };

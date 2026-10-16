@@ -23,9 +23,12 @@ async function main(): Promise<void> {
     throw new Error("Usage: --db-url <test branch URL> --run-id <8 hex chars> --mode <mode> --count <iterations or unique IDs>");
   }
   const parsedUrl = new URL(dbUrl);
+  if (dbUrl === process.env.DATABASE_URL || dbUrl === process.env.DATABASE_URL_DIRECT) {
+    throw new Error("Refusing to verify against a configured production/runtime database URL.");
+  }
   const databaseName = decodeURIComponent(parsedUrl.pathname.replace(/^\/+/, "")).toLowerCase();
-  if (!databaseName.includes("test") && process.env.ALLOW_NON_TEST_LOADTEST_DB !== "true") {
-    throw new Error("Refusing a database without 'test' in its name; explicitly set ALLOW_NON_TEST_LOADTEST_DB=true for an isolated load-test branch.");
+  if (!databaseName.includes("test")) {
+    throw new Error("Refusing a database without 'test' in its name; use an isolated load-test branch with a test-named database.");
   }
   const expected = mode === "mixed-invalid" ? count - Math.floor(count / 10) : count;
   const runNumber = Number.parseInt(runId, 16);

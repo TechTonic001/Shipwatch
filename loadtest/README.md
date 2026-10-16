@@ -42,7 +42,7 @@ After ingestion, wait for a sweep and run the SQL verifier from the repository r
 npm run loadtest:verify -- --db-url "postgres://.../shipwatch_test" --run-id $env:RUN_ID --mode steady --count 600
 ```
 
-The verifier refuses DB names without `test` unless explicitly overridden. It prints
-only pass/fail counts and latency percentiles, not the connection URL. Record actual
+The verifier refuses DB names without `test` and rejects the configured runtime/direct
+database URLs. It prints only pass/fail counts and latency percentiles, not the connection URL. Record actual
 results, environment details, and bottleneck evidence in [RESULTS.md](./RESULTS.md);
 leave unmeasured values blank.

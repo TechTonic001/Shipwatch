@@ -65,6 +65,9 @@ authorization values, webhook URLs, and error messages are not logged.
 ## SQL cookbook: “Why is nothing arriving?”
 
 Run these read-only queries in the Neon SQL editor for the intended branch.
+This is a docs-only operator status view because queue telemetry is operationally
+sensitive and `/api/internal/stats` is intentionally protected by `CRON_SECRET`;
+it should not be mixed into the read-only dashboard token surface.
 
 ### Is anything being acknowledged?
 

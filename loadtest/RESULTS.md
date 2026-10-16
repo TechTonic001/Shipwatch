@@ -51,7 +51,8 @@ webhook acknowledgement path. It refuses targets not exactly present in
 `ALLOWED_TARGET_URLS`; production also requires `ALLOW_PRODUCTION=true` and prints a
 warning. Run the scheduled sweep after ingestion, then run
 `npm run loadtest:verify -- --db-url <isolated-db-url> --run-id <8-hex> --mode <mode> --count <n>`.
-The verifier checks the deterministic ID range, processed state, domain status row
+The verifier refuses non-test database names and the configured runtime/direct
+database URL. It checks the deterministic ID range, processed state, domain status row
 count, duplicate domain keys, and reports latency percentiles from actual database
 timestamps. The k6 latency thresholds express the test's acceptance targets, not
 measured results.
