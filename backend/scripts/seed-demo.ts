@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import { randomUUID } from "node:crypto";
 
 import pg from "pg";
@@ -90,7 +92,9 @@ async function main(): Promise<void> {
   try {
     if (options.reset) await reset(pool);
     const generator = random(options.seed);
-    const start = new Date("2026-01-01T09:00:00.000Z");
+    const start = new Date();
+    start.setUTCDate(start.getUTCDate() - 29);
+    start.setUTCHours(9, 0, 0, 0);
     const events: Record<string, unknown>[] = [];
     let deploymentId = 8000;
     let statusId = 9000;

@@ -1,5 +1,29 @@
 # State machines
 
+## Webhook delivery state machine
+
+```text
+received -> processing -> processed
+                      -> ignored
+                      -> failed -> processing (backoff)
+                      -> dead
+processing with expired lock -> processing (reclaimed)
+processing with exhausted attempts -> dead
+```
+
+Claims use `FOR UPDATE SKIP LOCKED`. Completion is conditional on the worker still
+owning the stored lock timestamp. A sweep can reclaim expired locks; attempts are
+bounded. `lock_lost_count` records failed ownership checks.
+
+## Deployment status state machine
+
+GitHub status events are append-only rows keyed by status ID. Deployment rows are
+upserted by deployment ID. The current deployment state is updated from received
+status events; incident rules compare event timestamps so a late older event does not
+override a newer production outcome. A deployment may move through pending/queued/
+in-progress to success, failure, or error; terminal events can be observed out of
+order.
+
 ## Incident state machine
 
 ```text
@@ -84,3 +108,11 @@ produces zero Slack messages by design: the opened alert is marked
 Dispatch is at-least-once. A crash after Slack accepts a message but before the
 compare-and-set marks the alert sent can produce a duplicate Slack message. This is
 accepted because the database cannot atomically commit with an external Slack request.
+
+## Operator threshold state machine
+
+Each fixed threshold has one state row and a generation number. A false-to-true
+transition enqueues one `firing` notification; a true-to-false transition enqueues
+one `recovery` notification. The unique `(alert_key, generation, event_kind)` key
+deduplicates transition creation. Delivery retries remain in the operator outbox;
+external Slack delivery still has the same at-least-once crash window.
