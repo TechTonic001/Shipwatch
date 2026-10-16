@@ -10,7 +10,14 @@ export const pool = new pg.Pool({
 });
 
 pool.on("error", (error: Error) => {
-  logger.error({ error: error.message }, "Database pool error");
+  logger.error({
+    event: "database_pool",
+    outcome: "error",
+    durationMs: 0,
+    requestId: null,
+    deliveryId: null,
+    errorName: error.name
+  }, "Database pool error");
 });
 
 function connectionDetails(): { host: string; database: string } {
@@ -25,11 +32,26 @@ export async function verifyDatabaseConnection(): Promise<boolean> {
   const details = connectionDetails();
   try {
     await pool.query("SELECT 1");
-    logger.info(details, "Database connection successful");
+    logger.info({
+      ...details,
+      event: "database_connection",
+      outcome: "connected",
+      durationMs: 0,
+      requestId: null,
+      deliveryId: null
+    }, "Database connection successful");
     return true;
   } catch (error) {
     logger.error(
-      { ...details, error: error instanceof Error ? error.message : "Unknown database error" },
+      {
+        ...details,
+        event: "database_connection",
+        outcome: "failed",
+        durationMs: 0,
+        requestId: null,
+        deliveryId: null,
+        errorName: error instanceof Error ? error.name : "UnknownError"
+      },
       "Database connection failed"
     );
     return false;

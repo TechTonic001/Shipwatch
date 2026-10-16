@@ -22,7 +22,11 @@ export async function sendSlackMessage(
   } catch {
     return { ok: false, retryable: false, reason: "invalid webhook URL" };
   }
-  if (parsed.protocol !== "https:" || parsed.hostname !== "hooks.slack.com") {
+  const localTestServer =
+    process.env.NODE_ENV === "test" &&
+    parsed.protocol === "http:" &&
+    (parsed.hostname === "127.0.0.1" || parsed.hostname === "::1");
+  if (!localTestServer && (parsed.protocol !== "https:" || parsed.hostname !== "hooks.slack.com")) {
     return { ok: false, retryable: false, reason: "webhook URL is not an allowed Slack host" };
   }
 

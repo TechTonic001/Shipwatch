@@ -21,7 +21,14 @@ const invalidSignature = async (req: Parameters<RequestHandler>[0], res: Paramet
         return;
       }
     } catch (error) {
-      logger.warn({ err: error instanceof Error ? error.message : "rate limit unavailable" }, "invalid webhook rate limit unavailable");
+      logger.warn({
+        event: "webhook_rate_limit",
+        outcome: "unavailable",
+        durationMs: 0,
+        requestId: null,
+        deliveryId: req.header("x-github-delivery") ?? null,
+        errorName: error instanceof Error ? error.name : "UnknownError"
+      }, "invalid webhook rate limit unavailable");
     }
   }
   res.status(401).json({ error: "invalid signature" });

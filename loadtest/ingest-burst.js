@@ -1,4 +1,4 @@
-import { preflight, thresholds, sendSignedDelivery, iterationSequence, recordDroppedIterations } from "./lib.js";
+import { preflight, thresholds, sendSignedDelivery, iterationSequence } from "./lib.js";
 
 export const options = {
   scenarios: {
@@ -24,5 +24,4 @@ export function setup() {
 export default function (context) {
   const sequence = iterationSequence();
   sendSignedDelivery(context, sequence, "burst");
-  recordDroppedIterations();
 }

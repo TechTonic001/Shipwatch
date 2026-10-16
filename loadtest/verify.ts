@@ -45,7 +45,7 @@ async function main(): Promise<void> {
       `WITH expected AS (
          SELECT i AS sequence,
                 ($1::text || '-0000-4000-8000-' || lpad(to_hex(i), 12, '0'))::uuid AS delivery_id
-           FROM generate_series(0, $2::int - 1) AS i
+           FROM generate_series(0, $2::int - 1) AS series(i)
           WHERE $3::text <> 'mixed-invalid' OR mod(i, 10) <> 9
        ),
        rows AS (

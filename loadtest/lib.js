@@ -1,19 +1,18 @@
 import crypto from "k6/crypto";
 import exec from "k6/execution";
 import http from "k6/http";
-import { Counter, Rate } from "k6/metrics";
+import { Rate } from "k6/metrics";
 
 export const validErrors = new Rate("valid_event_error_rate");
 export const invalidNot401 = new Rate("invalid_signature_not_401_rate");
-export const duplicate5xx = new Counter("duplicate_5xx");
-export const dropped = new Counter("loadtest_dropped_iterations");
+export const duplicate5xx = new Rate("duplicate_5xx_rate");
 
 export const thresholds = {
   http_req_duration: ["p(99)<1000"],
   valid_event_error_rate: ["rate<0.01"],
   invalid_signature_not_401_rate: ["rate==0"],
-  duplicate_5xx: ["count==0"],
-  loadtest_dropped_iterations: ["count==0"]
+  duplicate_5xx_rate: ["rate==0"],
+  dropped_iterations: ["count==0"]
 };
 
 export function preflight() {
@@ -90,9 +89,4 @@ export function sendSignedDelivery(context, sequence, mode) {
 
 export function iterationSequence() {
   return exec.scenario.iterationInTest;
-}
-
-export function recordDroppedIterations() {
-  const count = exec.instance.vusDropped;
-  if (count > 0) dropped.add(count);
 }

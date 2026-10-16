@@ -104,7 +104,13 @@ async function reconcileRepository(repo: Repository): Promise<{ changed: number;
 
 export async function reconcileRepositories(): Promise<{ enabled: boolean; repositories: number; changed: number; stopped: boolean }> {
   if (!env.GITHUB_RECONCILE_TOKEN) {
-    logger.warn("GitHub reconciliation disabled: GITHUB_RECONCILE_TOKEN is not configured");
+    logger.warn({
+      event: "github_reconciliation",
+      outcome: "disabled",
+      durationMs: 0,
+      requestId: null,
+      deliveryId: null
+    }, "GitHub reconciliation disabled: GITHUB_RECONCILE_TOKEN is not configured");
     return { enabled: false, repositories: 0, changed: 0, stopped: false };
   }
   const repos = await pool.query<Repository>(
@@ -123,7 +129,15 @@ export async function reconcileRepositories(): Promise<{ enabled: boolean; repos
       stopped = stopped || result.stopped;
       if (stopped) break;
     } catch (error) {
-      logger.error({ repoId: repo.id, err: error instanceof Error ? error.message : "reconciliation failed" }, "GitHub reconciliation failed");
+      logger.error({
+        event: "github_reconciliation",
+        outcome: "failed",
+        durationMs: 0,
+        requestId: null,
+        deliveryId: null,
+        repoId: repo.id,
+        errorName: error instanceof Error ? error.name : "UnknownError"
+      }, "GitHub reconciliation failed");
       if (error instanceof Error && (error.message.includes("401") || error.message.includes("rate limit"))) break;
     }
   }

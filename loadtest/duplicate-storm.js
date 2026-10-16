@@ -1,4 +1,4 @@
-import { preflight, thresholds, sendSignedDelivery, iterationSequence, recordDroppedIterations } from "./lib.js";
+import { preflight, thresholds, sendSignedDelivery, iterationSequence } from "./lib.js";
 
 export const options = {
   scenarios: {
@@ -25,5 +25,4 @@ export default function (context) {
   for (let index = 0; index < repeats; index += 1) {
     sendSignedDelivery(context, sequence, "duplicate-storm");
   }
-  recordDroppedIterations();
 }

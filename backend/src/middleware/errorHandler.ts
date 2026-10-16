@@ -21,6 +21,13 @@ export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
     res.status(413).json({ error: "payload too large" });
     return;
   }
-  logger.error({ error }, "Unhandled request error");
+  logger.error({
+    event: "http_request",
+    outcome: "error",
+    durationMs: 0,
+    requestId: null,
+    deliveryId: null,
+    errorName: error instanceof Error ? error.name : "UnknownError"
+  }, "Unhandled request error");
   res.status(500).json({ error: "Internal server error" });
 };

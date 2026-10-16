@@ -40,7 +40,14 @@ app.use(errorHandler);
 
 if (env.NODE_ENV === "development") {
   app.listen(env.PORT, () => {
-    logger.info({ port: env.PORT }, "Shipwatch backend listening");
+    logger.info({
+      event: "backend_start",
+      outcome: "listening",
+      durationMs: 0,
+      requestId: null,
+      deliveryId: null,
+      port: env.PORT
+    }, "Shipwatch backend listening");
     void verifyDatabaseConnection();
   });
 }

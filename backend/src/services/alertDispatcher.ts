@@ -165,7 +165,14 @@ export async function dispatchAlerts({
         try {
           destination = decryptSecret(alert.webhookUrl);
         } catch (error) {
-          logger.warn({ err: error instanceof Error ? error.message : "secret decrypt failed" }, "encrypted Slack destination unavailable");
+          logger.warn({
+            event: "alert_dispatch",
+            outcome: "destination_unavailable",
+            durationMs: Date.now() - started,
+            requestId: null,
+            deliveryId: null,
+            errorName: error instanceof Error ? error.name : "UnknownError"
+          }, "encrypted Slack destination unavailable");
           destination = "";
         }
       }
@@ -216,7 +223,14 @@ export async function dispatchAlerts({
       }
     }
   } catch (error) {
-    logger.warn({ err: error }, "alert dispatch failed");
+    logger.warn({
+      event: "alert_dispatch",
+      outcome: "failed",
+      durationMs: Date.now() - started,
+      requestId: null,
+      deliveryId: null,
+      errorName: error instanceof Error ? error.name : "UnknownError"
+    }, "alert dispatch failed");
   }
   return summary;
 }
