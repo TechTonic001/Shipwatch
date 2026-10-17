@@ -3,9 +3,9 @@ type StatusChipProps = { status: string };
 const statusDetails: Record<string, { label: string; icon: string; tone: string }> = {
   success: { label: "Succeeded", icon: "✓", tone: "border-success/40 bg-success/10 text-success" },
   resolved: { label: "Resolved", icon: "✓", tone: "border-success/40 bg-success/10 text-success" },
-  failure: { label: "Failed", icon: "×", tone: "border-danger/40 bg-danger/10 text-danger" },
-  error: { label: "Error", icon: "!", tone: "border-danger/40 bg-danger/10 text-danger" },
-  open: { label: "Open", icon: "!", tone: "border-danger/40 bg-danger/10 text-danger" },
+  failure: { label: "Failed", icon: "×", tone: "border-danger/40 bg-surface text-danger" },
+  error: { label: "Error", icon: "!", tone: "border-danger/40 bg-surface text-danger" },
+  open: { label: "Open", icon: "!", tone: "border-danger/40 bg-surface text-danger" },
   in_progress: { label: "In progress", icon: "◷", tone: "border-warning/40 bg-warning/10 text-warning" },
   queued: { label: "Queued", icon: "◷", tone: "border-warning/40 bg-warning/10 text-warning" }
 };
