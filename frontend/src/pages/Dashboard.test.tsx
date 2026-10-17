@@ -58,7 +58,7 @@ describe("dashboard states", () => {
     expect(screen.getByText("1.0")).toBeInTheDocument();
     expect(screen.getByText("10.0%")).toBeInTheDocument();
     expect(screen.getByText("30m")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "View as table" }));
+    await user.click(await screen.findByRole("button", { name: "View as table" }));
     expect(screen.getByRole("table", { name: "Successful deployments by UTC day" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "UTC date" })).toHaveAttribute("scope", "col");
     expect(screen.getByText("abc1234")).toBeInTheDocument();
@@ -113,7 +113,7 @@ describe("dashboard states", () => {
       http.get(`${base}/repos/:id/runs`, () => HttpResponse.json({ data: [], nextCursor: null }))
     );
     renderDashboard();
-    expect(await screen.findByText("No data in this window", { selector: "p" })).toBeInTheDocument();
+    expect(await screen.findAllByText("No data in this window", { selector: "p" })).toHaveLength(3);
     expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(3);
     expect(await screen.findByText("Your delivery data will appear here")).toBeInTheDocument();
   });
