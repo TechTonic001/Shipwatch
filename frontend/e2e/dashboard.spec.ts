@@ -31,7 +31,7 @@ test("incident and empty demo variants stay isolated from the API", async ({ pag
   await page.goto("/?demo=incident");
   await expect(page.getByText("Demo data")).toBeVisible();
   await expect(page.getByText(/Production incident open for/)).toBeVisible();
-  await expect(page.getByText("f09e81c")).toBeVisible();
+  await expect(page.getByText("production is affected · failing f09e81c")).toBeVisible();
   await page.goto("/?demo=empty");
   await expect(page.getByText("No data in this window").first()).toBeVisible();
   await expect(page.getByText("Your delivery data will appear here")).toBeVisible();
