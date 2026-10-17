@@ -16,8 +16,15 @@ test("demo dashboard is responsive and accessible", async ({ page }) => {
     await expect(page.getByRole("heading", { name: "Production overview" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Recent runs" })).toBeVisible();
     await page.screenshot({ path: resolve(screenshots, `dashboard-${width}.png`), fullPage: true });
-    const hasHorizontalOverflow = await page.locator("html").evaluate((element) => element.scrollWidth > window.innerWidth);
-    expect(hasHorizontalOverflow, `horizontal overflow at ${width}px`).toBe(false);
+    const dimensions = await page.locator("html").evaluate((element) => ({
+      document: element.scrollWidth,
+      viewport: window.innerWidth,
+      offenders: Array.from(document.querySelectorAll("body *"))
+        .filter((child) => child.getBoundingClientRect().right > window.innerWidth)
+        .slice(0, 5)
+        .map((child) => ({ tag: child.tagName, className: child.className, right: child.getBoundingClientRect().right }))
+    }));
+    expect(dimensions.document <= dimensions.viewport, `horizontal overflow at ${width}px: ${JSON.stringify(dimensions)}`).toBe(true);
   }
   const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   expect(accessibility.violations).toEqual([]);

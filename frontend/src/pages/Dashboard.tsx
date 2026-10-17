@@ -53,14 +53,14 @@ function DashboardContent() {
   const stale = hasCachedData && (repos.isError || metrics.isError || incidents.isError || runs.isError);
   const retry = () => { void repos.refetch(); void metrics.refetch(); void incidents.refetch(); void runs.refetch(); };
 
-  if (repos.isLoading) return <main className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6"><Skeletons /></main>;
+  if (repos.isLoading) return <Skeletons />;
   if (repos.error instanceof ApiError && repos.error.status === 401) return <TokenGate unauthorized={Boolean(getDashboardToken())} onSaved={() => window.location.reload()} />;
   if (repos.error instanceof ConfigError) return <ConfigErrorScreen onRetry={retry} />;
   if (repos.isError) return <main className="grid min-h-screen place-items-center p-6"><MetricError onRetry={retry} /></main>;
   if (!repos.data?.length) return <main className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6"><header><p className="font-mono text-xs uppercase text-accent">Delivery health</p><h1 className="mt-2 text-2xl font-semibold">Shipwatch</h1></header><EmptyState /></main>;
 
   const data = metrics.data;
-  if (!data && metrics.isLoading) return <main className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6"><Skeletons /></main>;
+  if (!data && metrics.isLoading) return <Skeletons />;
   if (!data && metrics.error instanceof ApiError && metrics.error.status === 401) return <TokenGate unauthorized onSaved={() => window.location.reload()} />;
   if (!data && metrics.error instanceof ConfigError) return <ConfigErrorScreen onRetry={retry} />;
   if (!data && metrics.isError) return <main className="mx-auto max-w-7xl p-4 sm:p-6"><MetricError onRetry={retry} /></main>;
@@ -80,12 +80,12 @@ function DashboardContent() {
     </header>
     <main id="dashboard" className="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6 sm:py-8">
       <div className="flex items-end justify-between gap-4"><div><p className="font-mono text-xs uppercase text-accent">Delivery health</p><h1 className="mt-1 text-2xl font-semibold">Production overview</h1></div><p className="hidden text-xs text-muted sm:block">Updated {formatRefreshTime(data.generatedAt)}</p></div>
-      {stale && <StaleBanner onRetry={retry} />}
-      <StatusHero incidents={incidentList} runs={runList} />
+      {stale && <StaleBanner onRetry={retry} updatedAt={metrics.dataUpdatedAt} />}
+      <StatusHero incidents={incidentList} runs={runList} productionEnvironment={repos.data.find((repo) => repo.id === selected)?.productionEnvironment ?? "production"} />
       {metrics.isError && !stale && <MetricError onRetry={retry} />}
       {data.deploymentFrequency.total === 0 && runList.length === 0 && incidentList.length === 0 && <EmptyState />}
       <section aria-label="Delivery metrics" className="grid gap-3 md:grid-cols-3">
-        <MetricCard title="Deployment frequency" value={frequencyHasData ? `${(data.deploymentFrequency.total / (selectedWindow === "7d" ? 7 : 30)).toFixed(1)}` : "—"} secondary={frequencyHasData ? `${data.deploymentFrequency.total} successful · per day` : "No data in this window"} definition="Successful production deployments per day in the selected UTC window." trend={data.deploymentFrequency.perDay.map((day) => day.count)} />
+        <MetricCard title="Deployment frequency" value={frequencyHasData ? `${(data.deploymentFrequency.total / (selectedWindow === "7d" ? 7 : 30)).toFixed(1)} / day` : "—"} secondary={frequencyHasData ? `${data.deploymentFrequency.total} successful deployments` : "No data in this window"} definition="Successful production deployments per day in the selected UTC window." trend={data.deploymentFrequency.perDay.map((day) => day.count)} />
         <MetricCard title="Change failure rate" value={failureHasData ? `${(data.changeFailureRate.value! * 100).toFixed(1)}%` : "—"} secondary={failureHasData ? `${data.changeFailureRate.failed} failed / ${data.changeFailureRate.total} total` : "No data in this window"} definition="Production deployments ending in failure or error divided by successful, failed, or errored production deployments." />
         <MetricCard title="MTTR" value={mttrHasData ? median : "—"} secondary={mttrHasData ? `p90 ${data.mttr.p90Seconds === null ? "—" : `${Math.round(data.mttr.p90Seconds / 60)}m`} · ${data.mttr.resolvedCount} resolved` : "No data in this window"} definition="Median time from incident opened to resolved, using incidents resolved within this window. Secondary value is the 90th percentile." />
       </section>

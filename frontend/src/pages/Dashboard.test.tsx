@@ -55,7 +55,7 @@ describe("dashboard states", () => {
     renderDashboard();
     expect(await screen.findByRole("heading", { name: "Production overview" })).toBeInTheDocument();
     expect(screen.getByText("All clear")).toBeInTheDocument();
-    expect(screen.getByText("1.0")).toBeInTheDocument();
+    expect(screen.getByText("1.0 / day")).toBeInTheDocument();
     expect(screen.getByText("10.0%")).toBeInTheDocument();
     expect(screen.getByText("30m")).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "View as table" }, { timeout: 5000 }));
@@ -69,7 +69,7 @@ describe("dashboard states", () => {
     expect(await screen.findByRole("heading", { name: "Production overview" })).toBeInTheDocument();
     server.use(http.get(`${base}/repos/:id/metrics`, () => HttpResponse.json({ error: "unavailable" }, { status: 503 })));
     await client.refetchQueries({ queryKey: ["metrics"] });
-    expect(await screen.findByText("Showing data from 2m ago, reconnecting…")).toBeInTheDocument();
+    expect(await screen.findByText(/Showing data from .* ago, reconnecting…/)).toBeInTheDocument();
     expect(screen.getByText("10.0%")).toBeInTheDocument();
   });
 
