@@ -1,8 +1,7 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { Component, type ReactNode, useState } from "react";
+import { Component, lazy, Suspense, type ReactNode, useState } from "react";
 
 import { ConfigErrorScreen } from "../components/ConfigErrorScreen";
-import { DeploymentChart } from "../components/DeploymentChart";
 import { EmptyState } from "../components/EmptyState";
 import { IncidentList } from "../components/IncidentList";
 import { MetricCard } from "../components/MetricCard";
@@ -19,6 +18,7 @@ import { useRuns } from "../hooks/useRuns";
 import { ApiError, apiFetch, ConfigError, demoMode, getDashboardToken } from "../lib/api";
 
 type Repo = { id: number; fullName: string; productionEnvironment: string };
+const DeploymentChart = lazy(() => import("../components/DeploymentChart").then((module) => ({ default: module.DeploymentChart })));
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   state = { hasError: false };
@@ -88,7 +88,7 @@ function DashboardContent() {
         <MetricCard title="Change failure rate" value={failureHasData ? `${(data.changeFailureRate.value! * 100).toFixed(1)}%` : "—"} secondary={failureHasData ? `${data.changeFailureRate.failed} failed / ${data.changeFailureRate.total} total` : "No data in this window"} definition="Production deployments ending in failure or error divided by successful, failed, or errored production deployments." />
         <MetricCard title="MTTR" value={mttrHasData ? median : "—"} secondary={mttrHasData ? `p90 ${data.mttr.p90Seconds === null ? "—" : `${Math.round(data.mttr.p90Seconds / 60)}m`} · ${data.mttr.resolvedCount} resolved` : "No data in this window"} definition="Median time from incident opened to resolved, using incidents resolved within this window. Secondary value is the 90th percentile." />
       </section>
-      <DeploymentChart data={data.deploymentFrequency.perDay} />
+      <Suspense fallback={<div aria-label="Loading deployment chart" className="skeleton h-80 rounded-console border border-border/70" />}><DeploymentChart data={data.deploymentFrequency.perDay} /></Suspense>
       <div className="grid items-start gap-5 lg:grid-cols-2"><IncidentList incidents={incidentList} /><div id="recent-runs"><RunsTable runs={runList} hasMore={Boolean(runs.hasNextPage)} onLoadMore={() => { void runs.fetchNextPage(); }} loadingMore={runs.isFetchingNextPage} /></div></div>
     </main>
     <footer className="border-t border-border"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-5 text-xs text-muted sm:px-6"><div className="flex flex-wrap gap-x-5 gap-y-2"><span>Backend <code className="font-mono text-text">{import.meta.env.VITE_BACKEND_BUILD_SHA || "local"}</code></span><span>Frontend <code className="font-mono text-text">{import.meta.env.VITE_BUILD_SHA || "local"}</code></span></div><a className="text-accent underline underline-offset-4" href="/docs/metrics.md">Metric definitions</a></div></footer>
