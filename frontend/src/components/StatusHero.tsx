@@ -12,7 +12,7 @@ export function StatusHero({ incidents, runs, productionEnvironment }: { inciden
   const successfulRun = runs.find((run) => run.environment === productionEnvironment && run.state === "success");
   return openIncident ? (
     <section aria-live="polite" className="flex flex-wrap items-center justify-between gap-3 rounded-console border border-danger/40 bg-danger/10 px-5 py-4">
-      <div className="flex items-center gap-3"><span aria-hidden="true" className="grid h-8 w-8 place-items-center rounded-full border border-danger/50 text-danger">!</span><div><p className="font-semibold text-danger">Production incident open for {ageLabel(openIncident.ageSeconds)}</p><p className="mt-1 text-sm text-muted">{openIncident.environment} is affected{failedRun?.sha ? ` · failing ${failedRun.sha.slice(0, 7)}` : ""}</p></div></div>
+      <div className="flex items-center gap-3"><span aria-hidden="true" className="grid h-8 w-8 place-items-center rounded-full border border-danger/50 text-danger">!</span><div><p className="font-semibold text-danger">Production incident open for {ageLabel(openIncident.ageSeconds)}</p><p className="mt-1 text-sm text-muted">{openIncident.environment} is affected{failedRun?.sha ? ` · latest failed SHA: ${failedRun.sha.slice(0, 7)}` : " · failed SHA unavailable"}</p></div></div>
       <a className="text-sm font-medium text-danger underline underline-offset-4" href="#recent-incidents">View incident <span aria-hidden="true">↗</span></a>
     </section>
   ) : (
