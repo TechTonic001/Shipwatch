@@ -28,6 +28,9 @@ test("demo dashboard is responsive and accessible", async ({ page }) => {
   }
   const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   expect(accessibility.violations).toEqual([]);
+  await page.emulateMedia({ colorScheme: "light" });
+  const lightAccessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  expect(lightAccessibility.violations).toEqual([]);
 });
 
 test("incident and empty demo variants stay isolated from the API", async ({ page }) => {
