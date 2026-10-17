@@ -7,7 +7,8 @@
     "build": "tsc --noEmit && vite build",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run",
+    "test:e2e": "playwright test -c playwright.config.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.62.8",

@@ -20,7 +20,7 @@ import { ApiError, apiFetch, ConfigError, demoMode, getDashboardToken } from "..
 type Repo = { id: number; fullName: string; productionEnvironment: string };
 const DeploymentChart = lazy(() => import("../components/DeploymentChart").then((module) => ({ default: module.DeploymentChart })));
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+export class DashboardErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   state = { hasError: false };
   static getDerivedStateFromError(): { hasError: boolean } { return { hasError: true }; }
   render(): ReactNode {
@@ -83,6 +83,7 @@ function DashboardContent() {
       {stale && <StaleBanner onRetry={retry} />}
       <StatusHero incidents={incidentList} runs={runList} />
       {metrics.isError && !stale && <MetricError onRetry={retry} />}
+      {data.deploymentFrequency.total === 0 && runList.length === 0 && incidentList.length === 0 && <EmptyState />}
       <section aria-label="Delivery metrics" className="grid gap-3 md:grid-cols-3">
         <MetricCard title="Deployment frequency" value={frequencyHasData ? `${(data.deploymentFrequency.total / (selectedWindow === "7d" ? 7 : 30)).toFixed(1)}` : "—"} secondary={frequencyHasData ? `${data.deploymentFrequency.total} successful · per day` : "No data in this window"} definition="Successful production deployments per day in the selected UTC window." trend={data.deploymentFrequency.perDay.map((day) => day.count)} />
         <MetricCard title="Change failure rate" value={failureHasData ? `${(data.changeFailureRate.value! * 100).toFixed(1)}%` : "—"} secondary={failureHasData ? `${data.changeFailureRate.failed} failed / ${data.changeFailureRate.total} total` : "No data in this window"} definition="Production deployments ending in failure or error divided by successful, failed, or errored production deployments." />
@@ -96,6 +97,6 @@ function DashboardContent() {
 }
 
 export function Dashboard() {
-  if (demoMode) return <ErrorBoundary><DashboardContent /></ErrorBoundary>;
-  return <ErrorBoundary>{getDashboardToken() ? <DashboardContent /> : <TokenGate unauthorized={false} onSaved={() => window.location.reload()} />}</ErrorBoundary>;
+  if (demoMode) return <DashboardErrorBoundary><DashboardContent /></DashboardErrorBoundary>;
+  return <DashboardErrorBoundary>{getDashboardToken() ? <DashboardContent /> : <TokenGate unauthorized={false} onSaved={() => window.location.reload()} />}</DashboardErrorBoundary>;
 }

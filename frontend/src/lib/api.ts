@@ -1,7 +1,6 @@
 import type { Incident, Metrics } from "../hooks/useMetrics";
 import type { Run } from "../hooks/useRuns";
 
-const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3100";
 const demoChoice = new URLSearchParams(window.location.search).get("demo");
 export const demoMode = import.meta.env.DEV && ["1", "incident", "empty"].includes(demoChoice ?? "")
   ? demoChoice === "1" ? "standard" : demoChoice
@@ -63,6 +62,7 @@ export function getDashboardToken(): string {
 
 export async function apiFetch<T>(path: string): Promise<T> {
   if (demoMode) return demoFetch<T>(path);
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3100";
   let endpoint: URL;
   try { endpoint = new URL(apiUrl); } catch { throw new ConfigError(); }
   if (endpoint.protocol !== "http:" && endpoint.protocol !== "https:") throw new ConfigError();
