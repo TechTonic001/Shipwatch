@@ -11,6 +11,6 @@ const statusDetails: Record<string, { label: string; icon: string; tone: string 
 };
 
 export function StatusChip({ status }: StatusChipProps) {
-  const detail = statusDetails[status.toLowerCase()] ?? { label: status.replaceAll("_", " "), icon: "•", tone: "border-border bg-raised text-muted" };
+  const detail = statusDetails[status.toLowerCase()] ?? { label: status.replace(/_/g, " "), icon: "•", tone: "border-border bg-raised text-muted" };
   return <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded border px-2 py-1 text-xs font-medium capitalize ${detail.tone}`}><span aria-hidden="true">{detail.icon}</span>{detail.label}</span>;
 }

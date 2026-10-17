@@ -6,7 +6,7 @@ function Sparkline({ data }: { data: number[] }) {
 }
 
 export function MetricCard({ title, value, secondary, definition, trend }: MetricCardProps) {
-  const definitionId = `${title.replaceAll(" ", "-")}-definition`;
+  const definitionId = `${title.replace(/ /g, "-")}-definition`;
   return (
     <article className="min-h-40 rounded-console border border-border bg-surface p-5">
       <div className="flex items-center justify-between gap-3"><h2 className="text-sm font-medium text-muted">{title}</h2>
