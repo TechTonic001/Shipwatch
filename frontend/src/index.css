@@ -1,3 +1,48 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+	color-scheme: dark;
+	--color-background: 11 13 16;
+	--color-surface: 18 21 26;
+	--color-raised: 24 28 34;
+	--color-border: 35 40 50;
+	--color-text: 230 232 235;
+	--color-muted: 139 147 161;
+	--color-accent: 91 141 239;
+	--color-success: 63 182 122;
+	--color-danger: 229 72 77;
+	--color-warning: 245 165 36;
+	font-family: Inter, sans-serif;
+	font-synthesis: none;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-color-scheme: light) {
+	:root {
+		color-scheme: light;
+		--color-background: 246 247 249;
+		--color-surface: 255 255 255;
+		--color-raised: 239 242 246;
+		--color-border: 215 220 228;
+		--color-text: 25 29 36;
+		--color-muted: 83 91 103;
+		--color-accent: 38 91 190;
+		--color-success: 20 119 73;
+		--color-danger: 183 37 43;
+		--color-warning: 137 82 0;
+	}
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; background: rgb(var(--color-background)); color: rgb(var(--color-text)); }
+button, input, select { font: inherit; }
+button, a, input, select { outline-offset: 3px; }
+:focus-visible { outline: 2px solid rgb(var(--color-accent)); }
+::selection { background: rgb(var(--color-accent) / 0.35); }
+.skeleton { background: linear-gradient(90deg, rgb(var(--color-raised)), rgb(var(--color-border) / 0.8), rgb(var(--color-raised))); background-size: 200% 100%; animation: shimmer 1.6s linear infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
