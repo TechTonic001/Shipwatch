@@ -1,0 +1,3 @@
+export function ConfigErrorScreen({ onRetry }: { onRetry: () => void }) {
+  return <main className="grid min-h-[70vh] place-items-center p-6"><section className="max-w-md rounded-console border border-danger/40 bg-surface p-6"><p className="font-mono text-xs uppercase text-danger">Configuration error</p><h1 className="mt-3 text-xl font-semibold">Check the API endpoint</h1><p className="mt-2 text-sm leading-6 text-muted">Set <code className="font-mono text-text">VITE_API_URL</code> to a valid HTTP or HTTPS API origin, then reload the dashboard.</p><button className="mt-5 rounded border border-border px-4 py-2 text-sm hover:bg-raised" onClick={onRetry} type="button">Retry</button></section></main>;
+}
