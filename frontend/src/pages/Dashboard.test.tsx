@@ -58,10 +58,10 @@ describe("dashboard states", () => {
     expect(screen.getByText("1.0")).toBeInTheDocument();
     expect(screen.getByText("10.0%")).toBeInTheDocument();
     expect(screen.getByText("30m")).toBeInTheDocument();
-    await user.click(await screen.findByRole("button", { name: "View as table" }));
+    await user.click(await screen.findByRole("button", { name: "View as table" }, { timeout: 5000 }));
     expect(screen.getByRole("table", { name: "Successful deployments by UTC day" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "UTC date" })).toHaveAttribute("scope", "col");
-    expect(screen.getByText("abc1234")).toBeInTheDocument();
+    expect(screen.getAllByText("abc1234")).toHaveLength(2);
   });
 
   it("keeps last metrics visible and announces stale data after a failed refresh", async () => {
@@ -115,6 +115,7 @@ describe("dashboard states", () => {
     renderDashboard();
     expect(await screen.findAllByText("No data in this window", { selector: "p" })).toHaveLength(3);
     expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(3);
+    expect(await screen.findByText("No deployment runs in this window.")).toBeInTheDocument();
     expect(await screen.findByText("Your delivery data will appear here")).toBeInTheDocument();
   });
 

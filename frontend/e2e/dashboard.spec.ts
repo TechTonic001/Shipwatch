@@ -22,3 +22,18 @@ test("demo dashboard is responsive and accessible", async ({ page }) => {
   const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   expect(accessibility.violations).toEqual([]);
 });
+
+test("incident and empty demo variants stay isolated from the API", async ({ page }) => {
+  const apiRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/api/repos")) apiRequests.push(request.url());
+  });
+  await page.goto("/?demo=incident");
+  await expect(page.getByText("Demo data")).toBeVisible();
+  await expect(page.getByText(/Production incident open for/)).toBeVisible();
+  await expect(page.getByText("f09e81c")).toBeVisible();
+  await page.goto("/?demo=empty");
+  await expect(page.getByText("No data in this window").first()).toBeVisible();
+  await expect(page.getByText("Your delivery data will appear here")).toBeVisible();
+  expect(apiRequests).toEqual([]);
+});

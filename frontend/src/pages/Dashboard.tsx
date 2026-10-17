@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Component, lazy, Suspense, type ReactNode, useState } from "react";
 
 import { ConfigErrorScreen } from "../components/ConfigErrorScreen";

@@ -4,7 +4,17 @@ import { afterAll, afterEach, beforeAll } from "vitest";
 import { server } from "./server";
 
 globalThis.ResizeObserver = class ResizeObserverMock implements ResizeObserver {
-  observe(): void {}
+  constructor(private readonly callback: ResizeObserverCallback) {}
+  observe(target: Element): void {
+    const entry: ResizeObserverEntry = {
+      target,
+      contentRect: new DOMRect(0, 0, 600, 256),
+      borderBoxSize: [],
+      contentBoxSize: [],
+      devicePixelContentBoxSize: []
+    };
+    this.callback([entry], this);
+  }
   unobserve(): void {}
   disconnect(): void {}
 };
