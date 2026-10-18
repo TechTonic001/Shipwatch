@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import pg from "pg";
 
@@ -186,6 +187,10 @@ function percentile(values: number[], fraction: number): number {
   return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * fraction))] ?? 0;
 }
 
+export function hasHttpFailures(results: Array<Pick<Result, "status">>): boolean {
+  return results.some(({ status }) => status < 200 || status >= 300);
+}
+
 async function verify(dbUrl: string, expected: Scenario["expected"], duplicateAcknowledgements: number): Promise<boolean> {
   const pool = new pg.Pool({ connectionString: dbUrl });
   try {
@@ -240,12 +245,14 @@ async function main(): Promise<void> {
   const fourHundred = results.filter((result) => result.status >= 400 && result.status < 500).length;
   const fiveHundred = results.filter((result) => result.status >= 500).length;
   const duplicateAcknowledgements = results.filter((result) => result.duplicate).length;
+  const httpFailed = hasHttpFailures(results);
   process.stdout.write(
     `sent=${results.length} 2xx=${twoHundred} 4xx=${fourHundred} 5xx=${fiveHundred} ` +
       `duplicates_acknowledged=${duplicateAcknowledgements} p50=${percentile(latencies, 0.5).toFixed(1)}ms ` +
-      `p99=${percentile(latencies, 0.99).toFixed(1)}ms\n`
+      `p99=${percentile(latencies, 0.99).toFixed(1)}ms http_result=${httpFailed ? "FAIL" : "PASS"}\n`
   );
+  if (httpFailed) process.exitCode = 1;
   if (options.dbUrl && !(await verify(options.dbUrl, scenario.expected, duplicateAcknowledgements))) process.exitCode = 1;
 }
 
-await main();
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) await main();
