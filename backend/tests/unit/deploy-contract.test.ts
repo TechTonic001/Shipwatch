@@ -87,4 +87,10 @@ describe("deployment contract", () => {
     expect(incidentsResponse.status).toBe(200);
     expect(incidentPageSchema.parse(incidentsResponse.body)).toEqual(incidentsResponse.body);
   });
+
+  it("rejects webhook requests with missing headers without reaching persistence", async () => {
+    const response = await request(app).post("/api/webhooks/github").send({ action: "created" });
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: "invalid webhook headers" });
+  });
 });
