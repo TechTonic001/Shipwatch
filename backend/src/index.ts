@@ -15,6 +15,8 @@ import { validateWebhookHeaders } from "./middleware/webhookHeaders.js";
 import { verifyDatabaseConnection } from "./db/pool.js";
 
 const app = express();
+const allowedOrigins = new Set(env.FRONTEND_ORIGIN.split(",").map((value) => value.trim()).filter(Boolean));
+
 app.set("trust proxy", 1);
 app.use(helmet({
   contentSecurityPolicy: false,
@@ -26,6 +28,23 @@ const jsonParser = express.json({ limit: "100kb" });
 app.use((req, res, next) => {
   if (req.path === "/api/webhooks/github") {
     return next();
+  }
+
+  const origin = req.header("origin");
+  if (origin) {
+    if (!allowedOrigins.has(origin)) {
+      res.status(403).json({ error: "Origin not allowed" });
+      return;
+    }
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  }
+
+  if (req.method === "OPTIONS") {
+    res.sendStatus(204);
+    return;
   }
 
   return jsonParser(req, res, next);

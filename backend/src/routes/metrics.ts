@@ -27,18 +27,6 @@ function authorized(req: Request, res: Response): boolean {
 }
 
 metricsRouter.use("/api/repos", async (req, res, next) => {
-  const origin = req.header("origin");
-  if (origin && origin !== env.FRONTEND_ORIGIN) {
-    res.status(403).json({ error: "Origin not allowed" });
-    return;
-  }
-  if (req.method === "OPTIONS") {
-    res.setHeader("Access-Control-Allow-Origin", env.FRONTEND_ORIGIN);
-    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
-    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-    res.sendStatus(204);
-    return;
-  }
   if (!authorized(req, res)) return;
   try {
     if (!(await allowRateLimit("dashboard", req.ip ?? req.socket.remoteAddress ?? "unknown", 120, 60))) {
@@ -49,7 +37,6 @@ metricsRouter.use("/api/repos", async (req, res, next) => {
     next(error);
     return;
   }
-  res.setHeader("Access-Control-Allow-Origin", env.FRONTEND_ORIGIN);
   res.setHeader("Cache-Control", "s-maxage=5, stale-while-revalidate=30");
   next();
 });
