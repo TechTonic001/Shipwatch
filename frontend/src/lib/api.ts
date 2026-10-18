@@ -1,10 +1,16 @@
+import { z, type ZodType } from "zod";
+
 import type { Incident, Metrics } from "../hooks/useMetrics";
 import type { Run } from "../hooks/useRuns";
+import { incidentPageSchema, metricsResponseSchema, repositoryListSchema, runPageSchema } from "../../../shared/contracts";
 
 const demoChoice = new URLSearchParams(window.location.search).get("demo");
 export const demoMode = import.meta.env.DEV && ["1", "incident", "empty"].includes(demoChoice ?? "")
   ? demoChoice === "1" ? "standard" : demoChoice
   : null;
+
+const DASHBOARD_TOKEN_KEY = "shipwatch.dashboardToken";
+let memoryDashboardToken: string | null = null;
 
 type Repo = { id: number; fullName: string; productionEnvironment: string };
 
@@ -47,28 +53,128 @@ function demoFetch<T>(path: string): T {
 }
 
 export class ApiError extends Error {
-  constructor(public readonly status: number) {
-    super(`API request failed: ${status}`);
+  constructor(public readonly status: number, message: string) {
+    super(message);
   }
 }
 
 export class ConfigError extends Error {
-  constructor() { super("VITE_API_URL must be a valid HTTP or HTTPS URL."); }
+  constructor(message = "Configuration error: VITE_API_URL is not set") {
+    super(message);
+  }
+}
+
+export class SchemaError extends Error {
+  constructor(message: string) {
+    super(message);
+  }
+}
+
+export function setDashboardToken(token: string): void {
+  const value = token.trim();
+  memoryDashboardToken = value || null;
+  if (typeof sessionStorage !== "undefined") {
+    if (value) {
+      sessionStorage.setItem(DASHBOARD_TOKEN_KEY, value);
+      return;
+    }
+    sessionStorage.removeItem(DASHBOARD_TOKEN_KEY);
+  }
+}
+
+export function clearDashboardToken(): void {
+  memoryDashboardToken = null;
+  if (typeof sessionStorage !== "undefined") {
+    sessionStorage.removeItem(DASHBOARD_TOKEN_KEY);
+  }
 }
 
 export function getDashboardToken(): string {
-  return typeof sessionStorage === "undefined" ? "" : sessionStorage.getItem("shipwatch.dashboardToken") ?? "";
+  if (typeof sessionStorage !== "undefined") {
+    const value = sessionStorage.getItem(DASHBOARD_TOKEN_KEY);
+    if (value) {
+      memoryDashboardToken = value;
+      return value;
+    }
+  }
+  return memoryDashboardToken ?? "";
 }
 
-export async function apiFetch<T>(path: string): Promise<T> {
-  if (demoMode) return demoFetch<T>(path);
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3100";
-  let endpoint: URL;
-  try { endpoint = new URL(apiUrl); } catch { throw new ConfigError(); }
-  if (endpoint.protocol !== "http:" && endpoint.protocol !== "https:") throw new ConfigError();
-  const response = await fetch(new URL(path, endpoint).toString(), {
-    headers: { Authorization: `Bearer ${getDashboardToken()}` }
-  });
-  if (!response.ok) throw new ApiError(response.status);
-  return response.json() as Promise<T>;
+function getApiBaseUrl(): string {
+  const rawValue = (import.meta.env.VITE_API_URL ?? "").trim().replace(/\/+$/, "");
+  if (!rawValue) {
+    if (import.meta.env.PROD) {
+      throw new ConfigError("Configuration error: VITE_API_URL is not set");
+    }
+    return "http://localhost:3000";
+  }
+
+  try {
+    const candidate = new URL(rawValue);
+    if (candidate.protocol !== "http:" && candidate.protocol !== "https:") {
+      throw new Error("Only HTTP and HTTPS endpoints are supported.");
+    }
+    return candidate.origin;
+  } catch {
+    throw new ConfigError("Configuration error: VITE_API_URL must be a valid HTTP or HTTPS URL.");
+  }
 }
+
+export async function apiFetch<T>(path: string, schema: ZodType<T>): Promise<T> {
+  if (demoMode) {
+    return schema.parse(demoFetch<T>(path));
+  }
+
+  const endpoint = new URL(path, `${getApiBaseUrl()}/`);
+  const token = getDashboardToken();
+
+  let response: Response;
+  try {
+    response = await fetch(endpoint.toString(), {
+      headers: {
+        Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      }
+    });
+  } catch {
+    throw new ApiError(0, "Network error: the dashboard could not reach the API.");
+  }
+
+  if (response.status === 401) {
+    clearDashboardToken();
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  if (response.status === 429) {
+    throw new ApiError(429, "Rate limit exceeded");
+  }
+
+  if (response.status >= 500) {
+    throw new ApiError(response.status, `Server error: ${response.status}`);
+  }
+
+  if (!response.ok) {
+    throw new ApiError(response.status, `Request failed: ${response.status}`);
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    const text = await response.text();
+    throw new ApiError(response.status, `Expected JSON but received ${contentType || "a non-JSON response"}: ${text.slice(0, 120)}`);
+  }
+
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new ApiError(response.status, "The API response was not valid JSON.");
+  }
+
+  try {
+    return schema.parse(payload) as T;
+  } catch (error) {
+    const message = error instanceof z.ZodError ? error.issues.map((issue) => `${issue.path.join(".") || "payload"}: ${issue.message}`).join(", ") : "Response schema validation failed.";
+    throw new SchemaError(`API response mismatch: ${message}`);
+  }
+}
+

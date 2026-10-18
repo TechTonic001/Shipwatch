@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from "react";
 
+import { setDashboardToken } from "../lib/api";
+
 export function TokenGate({ unauthorized, onSaved }: { unauthorized: boolean; onSaved: () => void }) {
   const [token, setToken] = useState("");
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    sessionStorage.setItem("shipwatch.dashboardToken", token);
+    setDashboardToken(token);
     onSaved();
   }
   return <main className="grid min-h-screen place-items-center bg-background p-5">

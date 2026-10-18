@@ -15,7 +15,8 @@ import { WindowToggle, type MetricWindow } from "../components/WindowToggle";
 import { useIncidents } from "../hooks/useIncidents";
 import { useMetrics } from "../hooks/useMetrics";
 import { useRuns } from "../hooks/useRuns";
-import { ApiError, apiFetch, ConfigError, demoMode, getDashboardToken } from "../lib/api";
+import { ApiError, apiFetch, clearDashboardToken, ConfigError, demoMode, getDashboardToken } from "../lib/api";
+import { repositoryListSchema } from "../../../shared/contracts";
 
 type Repo = { id: number; fullName: string; productionEnvironment: string };
 const DeploymentChart = lazy(() => import("../components/DeploymentChart").then((module) => ({ default: module.DeploymentChart })));
@@ -40,7 +41,7 @@ function formatRefreshTime(timestamp: string | undefined): string {
 }
 
 function DashboardContent() {
-  const repos = useQuery({ queryKey: ["repos"], queryFn: () => apiFetch<Repo[]>("/api/repos"), refetchInterval: 10000, refetchIntervalInBackground: false });
+  const repos = useQuery({ queryKey: ["repos"], queryFn: () => apiFetch<Repo[]>("/api/repos", repositoryListSchema), refetchInterval: 10000, refetchIntervalInBackground: false });
   const [repoId, setRepoId] = useState<number | null>(null);
   const [selectedWindow, setSelectedWindow] = useState<MetricWindow>("7d");
   const selected = repoId ?? repos.data?.[0]?.id ?? null;
@@ -55,14 +56,14 @@ function DashboardContent() {
 
   if (repos.isLoading) return <Skeletons />;
   if (repos.error instanceof ApiError && repos.error.status === 401) return <TokenGate unauthorized={Boolean(getDashboardToken())} onSaved={() => window.location.reload()} />;
-  if (repos.error instanceof ConfigError) return <ConfigErrorScreen onRetry={retry} />;
+  if (repos.error instanceof ConfigError) return <ConfigErrorScreen onRetry={retry} errorMessage={repos.error.message} />;
   if (repos.isError) return <main className="grid min-h-screen place-items-center p-6"><MetricError onRetry={retry} /></main>;
   if (!repos.data?.length) return <main className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6"><header><p className="font-mono text-xs uppercase text-accent">Delivery health</p><h1 className="mt-2 text-2xl font-semibold">Shipwatch</h1></header><EmptyState /></main>;
 
   const data = metrics.data;
   if (!data && metrics.isLoading) return <Skeletons />;
   if (!data && metrics.error instanceof ApiError && metrics.error.status === 401) return <TokenGate unauthorized onSaved={() => window.location.reload()} />;
-  if (!data && metrics.error instanceof ConfigError) return <ConfigErrorScreen onRetry={retry} />;
+  if (!data && metrics.error instanceof ConfigError) return <ConfigErrorScreen onRetry={retry} errorMessage={metrics.error.message} />;
   if (!data && metrics.isError) return <main className="mx-auto max-w-7xl p-4 sm:p-6"><MetricError onRetry={retry} /></main>;
   if (!data) return null;
 
@@ -75,7 +76,7 @@ function DashboardContent() {
     <header className="border-b border-border bg-background">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
         <div className="flex items-center gap-3"><a href="#dashboard" className="flex items-center gap-2 rounded text-text no-underline"><span aria-hidden="true" className="grid h-8 w-8 place-items-center rounded border border-accent/40 bg-accent/10 font-mono text-sm text-accent">S</span><span className="text-base font-semibold">shipwatch</span></a>{demoMode && <span className="rounded border border-warning/40 bg-warning/10 px-2 py-1 text-xs font-medium text-warning">Demo data</span>}</div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3"><RepoSelect repos={repos.data} value={selected ?? repos.data[0].id} onChange={setRepoId} /><WindowToggle value={selectedWindow} onChange={setSelectedWindow} /><div className="flex items-center gap-2 px-1 text-xs text-muted" aria-label={`Live, refreshed ${formatRefreshTime(data.generatedAt)}`}><span aria-hidden="true" className="h-2 w-2 rounded-full bg-success" /><span className="font-medium text-success">Live</span><span className="hidden sm:inline">· {formatRefreshTime(data.generatedAt)}</span></div><button type="button" className="rounded border border-border px-3 py-2 text-sm text-muted hover:bg-raised hover:text-text" onClick={() => { sessionStorage.removeItem("shipwatch.dashboardToken"); window.location.href = window.location.pathname; }}>Sign out</button></div>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3"><RepoSelect repos={repos.data} value={selected ?? repos.data[0].id} onChange={setRepoId} /><WindowToggle value={selectedWindow} onChange={setSelectedWindow} /><div className="flex items-center gap-2 px-1 text-xs text-muted" aria-label={`Live, refreshed ${formatRefreshTime(data.generatedAt)}`}><span aria-hidden="true" className="h-2 w-2 rounded-full bg-success" /><span className="font-medium text-success">Live</span><span className="hidden sm:inline">· {formatRefreshTime(data.generatedAt)}</span></div><button type="button" className="rounded border border-border px-3 py-2 text-sm text-muted hover:bg-raised hover:text-text" onClick={() => { clearDashboardToken(); window.location.href = window.location.pathname; }}>Sign out</button></div>
       </div>
     </header>
     <main id="dashboard" className="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6 sm:py-8">
