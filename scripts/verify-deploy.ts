@@ -1,5 +1,4 @@
-import { createHmac } from "node:crypto";
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 
 const usage = `Usage: npx tsx scripts/verify-deploy.ts <BACKEND_URL> <FRONTEND_URL> [TOKEN] [WEBHOOK_SECRET]`;
 

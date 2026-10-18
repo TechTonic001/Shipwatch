@@ -33,7 +33,7 @@ Audit date: 2026-10-18. This report records only checks actually run in this wor
 
 The backend integration attempt reported 15 tests skipped after setup failure: `phase3.test.ts` 7, `phase4.test.ts` 4, `phase8.test.ts` 3, and `realFixtures.test.ts` 1. `webhook.test.ts` failed suite setup before collecting cases. They are blocked, not passing. Teardown guards were added for setup failures; the rerun reports the primary missing-database errors without secondary `undefined.end()` failures.
 
-Source scan for `describe.skip`, `it.skip`, `test.skip`, `.todo`, or `.only(` found zero checked-in matches. The focused frontend run selected one test and showed 9 filter-excluded tests as skipped; the unfiltered frontend run passed all 12. The backend's 15 setup-blocked skips above are the only test cases skipped by the full backend attempt.
+Test-source scan across `backend/tests`, `frontend/src`, and `frontend/e2e` for `describe.skip`, `it.skip`, `test.skip`, `.todo`, or `.only(` found zero matches. A repository-wide grep also matched `React.Children.only` in the generated minified Recharts bundle; that is not a test marker. The focused frontend run selected one test and showed 9 filter-excluded tests as skipped; the unfiltered frontend run passed all 12. The backend's 15 setup-blocked skips above are the only test cases skipped by the full backend attempt.
 
 ### Local API status matrix
 
@@ -96,6 +96,8 @@ The source grep for `TODO` and `not implemented` found:
 
 - `backend/db/schema.sql:1` — `TODO: I will paste the SQL.` The file is not a canonical schema snapshot.
 - `backend/src/routes/webhook.ts:64` — `TODO(phase-2): waitUntil(processBatch()) after persistence is complete.` Current architecture documents sweep-driven processing instead; this TODO is stale and misleading.
+
+The build generated matching transpiled copies of the webhook TODO under `backend/dist`; those are output artifacts, not additional source TODOs.
 
 No `not implemented` text was found. Additional no-op compatibility stubs (found by searching `stub`) are:
 
