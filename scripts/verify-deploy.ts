@@ -1,4 +1,5 @@
 import { createHmac } from "node:crypto";
+import { randomUUID } from "node:crypto";
 
 const usage = `Usage: npx tsx scripts/verify-deploy.ts <BACKEND_URL> <FRONTEND_URL> [TOKEN] [WEBHOOK_SECRET]`;
 
@@ -112,6 +113,7 @@ async function ensureWebhookPing(): Promise<void> {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "X-GitHub-Delivery": randomUUID(),
       "X-GitHub-Event": "ping",
       "X-Hub-Signature-256": `sha256=${signature}`
     },
