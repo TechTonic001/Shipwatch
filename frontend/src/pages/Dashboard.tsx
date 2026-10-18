@@ -49,13 +49,18 @@ function DashboardContent() {
   const incidents = useIncidents(selected);
   const runs = useRuns(selected);
   const runList = runs.data?.pages.flatMap((page) => page.data) ?? [];
-  const incidentList = incidents.data?.data ?? metrics.data?.openIncidents ?? [];
+  const incidentList = ((incidents.data?.data ?? metrics.data?.openIncidents ?? []) as Array<{ id: string; environment: string; openedAt: string; ageSeconds: number | null; status?: "open" | "resolved"; resolvedAt?: string | null }>).map((incident) => ({
+    ...incident,
+    ageSeconds: incident.ageSeconds ?? 0,
+    status: incident.status,
+    resolvedAt: incident.resolvedAt ?? null
+  }));
   const hasCachedData = Boolean(metrics.data || incidents.data || runs.data);
   const stale = hasCachedData && (repos.isError || metrics.isError || incidents.isError || runs.isError);
   const retry = () => { void repos.refetch(); void metrics.refetch(); void incidents.refetch(); void runs.refetch(); };
 
   if (repos.isLoading) return <Skeletons />;
-  if (repos.error instanceof ApiError && repos.error.status === 401) return <TokenGate unauthorized={Boolean(getDashboardToken())} onSaved={() => window.location.reload()} />;
+  if (repos.error instanceof ApiError && repos.error.status === 401) return <TokenGate unauthorized onSaved={() => window.location.reload()} />;
   if (repos.error instanceof ConfigError) return <ConfigErrorScreen onRetry={retry} errorMessage={repos.error.message} />;
   if (repos.isError) return <main className="grid min-h-screen place-items-center p-6"><MetricError onRetry={retry} /></main>;
   if (!repos.data?.length) return <main className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6"><header><p className="font-mono text-xs uppercase text-accent">Delivery health</p><h1 className="mt-2 text-2xl font-semibold">Shipwatch</h1></header><EmptyState /></main>;

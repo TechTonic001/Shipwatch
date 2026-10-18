@@ -2,7 +2,6 @@ import { z, type ZodType } from "zod";
 
 import type { Incident, Metrics } from "../hooks/useMetrics";
 import type { Run } from "../hooks/useRuns";
-import { incidentPageSchema, metricsResponseSchema, repositoryListSchema, runPageSchema } from "../../../shared/contracts";
 
 const demoChoice = new URLSearchParams(window.location.search).get("demo");
 export const demoMode = import.meta.env.DEV && ["1", "incident", "empty"].includes(demoChoice ?? "")
@@ -158,16 +157,21 @@ export async function apiFetch<T>(path: string, schema: ZodType<T>): Promise<T> 
   }
 
   const contentType = response.headers.get("content-type") ?? "";
-  if (!contentType.includes("application/json")) {
+  if (contentType.includes("text/html") || contentType.includes("application/xhtml+xml")) {
     const text = await response.text();
-    throw new ApiError(response.status, `Expected JSON but received ${contentType || "a non-JSON response"}: ${text.slice(0, 120)}`);
+    throw new ApiError(response.status, `Expected JSON but received HTML: ${text.slice(0, 120)}`);
+  }
+
+  const payloadText = await response.text();
+  if (!payloadText.trim()) {
+    throw new ApiError(response.status, "The API response was empty.");
   }
 
   let payload: unknown;
   try {
-    payload = await response.json();
+    payload = JSON.parse(payloadText);
   } catch {
-    throw new ApiError(response.status, "The API response was not valid JSON.");
+    throw new ApiError(response.status, `Expected JSON but received ${contentType || "a non-JSON response"}: ${payloadText.slice(0, 120)}`);
   }
 
   try {
