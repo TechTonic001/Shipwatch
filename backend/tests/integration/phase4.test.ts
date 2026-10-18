@@ -47,8 +47,8 @@ describe("Phase 4 environment matching", () => {
   }, 60_000);
 
   afterAll(async () => {
-    await applicationPool.end();
-    await stopTestDatabase(database);
+    if (applicationPool) await applicationPool.end();
+    if (database) await stopTestDatabase(database);
   });
 
   it.each([

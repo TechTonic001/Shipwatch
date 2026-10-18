@@ -40,8 +40,8 @@ describe("sanitized real fixtures", () => {
   }, 60_000);
 
   afterAll(async () => {
-    await applicationPool.end();
-    await stopTestDatabase(database);
+    if (applicationPool) await applicationPool.end();
+    if (database) await stopTestDatabase(database);
   });
 
   it("has captured fixtures and processes every one without permanent errors", async () => {

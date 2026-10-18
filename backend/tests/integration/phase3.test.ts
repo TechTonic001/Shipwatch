@@ -54,8 +54,8 @@ describe("Phase 3 incidents and alert outbox", () => {
   }, 60_000);
 
   afterAll(async () => {
-    await applicationPool.end();
-    await stopTestDatabase(database);
+    if (applicationPool) await applicationPool.end();
+    if (database) await stopTestDatabase(database);
   });
 
   it("opens one production incident and one pending alert", async () => {
