@@ -28,7 +28,7 @@ Audit date: 2026-10-18. This report records only checks actually run in this wor
 - `npm run test --workspace frontend`: PASS, 2 files / 12 tests.
 - `npm run test:e2e --workspace frontend`: PASS, 2 Playwright tests (responsive/accessibility and demo isolation).
 - `npm run test:unit --workspace backend`: PASS, 12 files / 30 tests.
-- `npm test --workspace backend`: NOT PASS. Unit tests passed; integration tests could not start because `TEST_DATABASE_URL` is unset and Docker's daemon is unavailable. The complete suite is NOT VERIFIED against real PostgreSQL.
+- `npm test --workspace backend`: NOT PASS. Unit tests passed; integration tests could not start because `TEST_DATABASE_URL` is unset, Docker Desktop's service is stopped, and `127.0.0.1:5432` refuses connections. The complete suite is NOT VERIFIED against real PostgreSQL.
 - `npm audit --omit=dev`: NOT VERIFIED; npm registry DNS resolution failed (`ENOTFOUND registry.npmjs.org`). Do not infer package-level fixes from the install summary.
 
 The backend integration attempt reported 15 tests skipped after setup failure: `phase3.test.ts` 7, `phase4.test.ts` 4, `phase8.test.ts` 3, and `realFixtures.test.ts` 1. `webhook.test.ts` failed suite setup before collecting cases. They are blocked, not passing. Teardown guards were added for setup failures; the rerun reports the primary missing-database errors without secondary `undefined.end()` failures.
@@ -108,7 +108,7 @@ They have no current callers in `backend/src`; removal was not attempted because
 
 ## Top Problems By Severity
 
-1. **Critical blocker: no real PostgreSQL verification.** No `TEST_DATABASE_URL` was provided and Docker daemon access failed. Readiness, authenticated reads, sweeps, persistence, six replay states, and the full backend integration suite remain NOT VERIFIED. No database credentials were changed or used; provide a disposable test database or start Docker to close this.
+1. **Critical blocker: no real PostgreSQL verification.** No `TEST_DATABASE_URL` was provided; Docker Desktop is installed but its service is stopped, and nothing listens on local port 5432. Readiness, authenticated reads, sweeps, persistence, six replay states, and the full backend integration suite remain NOT VERIFIED. No database credentials were changed or used; start Docker Desktop or provide a disposable test database URL to close this.
 2. **High, fixed: webhook requests previously hung.** `startWebhookRequest` recorded request metadata but did not call `next()`. A regression test reproduced a 60-second timeout; middleware now calls `next()`, the focused test passes, and a live malformed request returns 400.
 3. **High blocker: all six event replay scenarios failed at persistence.** Actual results were all `5xx`, zero duplicate acknowledgements, and no SQL state check. They exit nonzero now; scenario correctness remains NOT VERIFIED until rerun against PostgreSQL.
 4. **High, fixed: integration setup failures caused teardown exceptions.** Three `afterAll` hooks unconditionally dereferenced resources whose setup had failed. Teardown is guarded; the rerun now exposes only the real database-provider failure. Integration behavior is still NOT VERIFIED.
