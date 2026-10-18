@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Request } from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import { logger } from "../lib/logger.js";
 
@@ -12,8 +12,9 @@ type WebhookLog = {
 
 const requestState = new WeakMap<Request, { startedAt: number; requestId: string }>();
 
-export function startWebhookRequest(req: Request): void {
+export function startWebhookRequest(req: Request, _res: Response, next: NextFunction): void {
   requestState.set(req, { startedAt: Date.now(), requestId: randomUUID() });
+  next();
 }
 
 export function logWebhookRequest(req: Request, log: WebhookLog): void {
