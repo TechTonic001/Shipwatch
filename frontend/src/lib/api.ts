@@ -178,7 +178,9 @@ export async function apiFetch<T>(path: string, schema: ZodType<T>): Promise<T> 
   try {
     return schema.parse(payload) as T;
   } catch (error) {
-    const message = error instanceof z.ZodError ? error.issues.map((issue) => `${issue.path.join(".") || "payload"}: ${issue.message}`).join(", ") : "Response schema validation failed.";
+    const message = error instanceof z.ZodError
+      ? error.issues.map((issue: z.ZodIssue) => `${issue.path.join(".") || "payload"}: ${issue.message}`).join(", ")
+      : "Response schema validation failed.";
     throw new SchemaError(`API response mismatch: ${message}`);
   }
 }
