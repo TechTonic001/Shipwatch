@@ -29,7 +29,8 @@ connection URL.
 ```mermaid
 flowchart LR
   GitHub -->|signed HTTPS webhook| Backend
-  Cron[Vercel Cron] -->|CRON_SECRET| Backend
+   Actions[GitHub Actions, every five minutes] -->|POST + CRON_SECRET| Backend
+   VercelCron[Vercel daily backstop] -->|GET + CRON_SECRET| Backend
   Dashboard -->|DASHBOARD_READ_TOKEN| Backend
   Backend -->|pooled URL| Neon[(Neon PostgreSQL)]
   Backend -->|GitHub token, read-only| GitHubAPI[GitHub REST API]
@@ -38,7 +39,9 @@ flowchart LR
 ```
 
 Webhook acknowledgement proves only that a delivery row was stored (or had already
-been stored), not that the event has been processed. The five-minute cron schedule
-bounds normal recovery delay but can be delayed by platform scheduling and database
-availability. Alert delivery is at-least-once. The dashboard and internal stats route
-are separate credentials and should be rotated independently.
+been stored), not that the event has been processed. GitHub Actions is the primary
+five-minute sweep scheduler; Vercel Cron runs once daily as a Hobby-compatible backstop.
+Scheduled GitHub runs can be delayed or disabled after 60 days of inactivity in public
+repositories, so stuck events wait for the next successful sweep. Alert delivery is
+at-least-once. The dashboard and internal stats route are separate credentials and
+should be rotated independently.

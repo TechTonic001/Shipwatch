@@ -7,7 +7,7 @@
 | `GITHUB_WEBHOOK_SECRET` | HMAC verification | yes | Vercel backend | Rotate GitHub webhook and Vercel together |
 | `GITHUB_RECONCILE_TOKEN` | Read-only GitHub reconciliation | yes | Vercel backend | Replace fine-grained PAT; Actions/Deployments/Metadata read only |
 | `DASHBOARD_READ_TOKEN` | Read-only dashboard bearer token | yes | Vercel backend and user session entry | Replace server value and distribute through the secure prompt |
-| `CRON_SECRET` | Vercel sweep authorization | yes | Vercel backend | Replace Vercel Cron authorization secret |
+| `CRON_SECRET` | Bearer authorization for Vercel and GitHub Actions sweep calls | yes | Vercel backend and GitHub Actions repository secrets | Rotate both stores together |
 | `ENCRYPTION_KEY` | AES-256-GCM active key, base64 32 bytes | yes | Vercel backend and migration job | Set `ENCRYPTION_KEY_OLD`, deploy, run `encrypt-secrets`, then remove old key |
 | `ENCRYPTION_KEY_OLD` | Temporary decryption key during rotation | yes | Vercel backend during rotation | Remove after all rows are re-encrypted |
 | `SLACK_WEBHOOK_URL` | Default Slack destination | yes | Vercel backend | Rotate Slack webhook and redeploy |
