@@ -16,9 +16,10 @@ import { verifyDatabaseConnection } from "./db/pool.js";
 
 const app = express();
 const allowedOrigins = new Set(env.FRONTEND_ORIGIN.split(",").map((value) => value.trim()).filter(Boolean));
+const helmetMiddleware = helmet as unknown as (options?: Record<string, unknown>) => express.RequestHandler;
 
 app.set("trust proxy", 1);
-app.use(helmet({
+app.use(helmetMiddleware({
   contentSecurityPolicy: false,
   crossOriginResourcePolicy: { policy: "same-site" },
   referrerPolicy: { policy: "no-referrer" }
