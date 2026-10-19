@@ -14,7 +14,8 @@ GitHub's deployment and Actions views are useful for inspecting individual repos
 flowchart LR
   GH[GitHub webhooks] -->|raw-body HMAC| API[Backend on Vercel]
   API -->|persist + acknowledge| DB[(Neon PostgreSQL)]
-  CRON[Vercel Cron sweep] --> API
+  GHCRON[GitHub Actions sweep, every five minutes] -->|POST| API
+  VCRON[Vercel daily backstop] -->|GET| API
   API -->|claim / process / retry| DB
   API -->|at-least-once outbox| SLACK[Slack]
   DB -->|authenticated reads| API
@@ -203,10 +204,21 @@ Neon provisioning is declared in [neon.ts](./neon.ts). The backend consumes Neon
 `DATABASE_URL` through `pg`, and validates the pulled Neon Auth and Function URLs as typed
 configuration. Authentication and domain processing remain intentionally stubbed.
 
-## Vercel cron note
+## Scheduling
 
-The backend `vercel.json` schedules the recovery sweep every five minutes. Vercel documents
-100 cron jobs per project on every plan, but Hobby projects are limited to once-daily
-cron expressions with per-hour timing precision (±59 minutes). Pro and Enterprise support
-once-per-minute schedules with per-minute precision, so the checked-in schedule requires
-Pro or Enterprise. Cron jobs run only on production deployments.
+The primary recovery sweep is `.github/workflows/sweep.yml`: GitHub Actions sends an
+authenticated `POST` every five minutes, with a manual `workflow_dispatch` option.
+GitHub scheduled runs can be delayed during high load; schedules in public repositories
+are disabled after 60 days without repository activity. Webhook validation and inline
+persistence continue to work, but queued events that need processing wait until the next
+successful sweep. The response's `stats.oldestPendingDeliveryAgeSeconds` indicates the
+age of the oldest queued delivery.
+
+`backend/vercel.json` retains a once-daily `03:00 UTC` Vercel Cron as a backstop, which is
+compatible with Hobby's daily limit and per-hour timing precision. Vercel Cron invokes
+`GET`; GitHub Actions invokes `POST`. Both require the same bearer `CRON_SECRET`.
+
+Set `CRON_SECRET` in the backend Vercel project's production environment and as a GitHub
+Actions repository secret. Set `SWEEP_URL` as a GitHub Actions repository secret to the
+full backend sweep URL (`https://<backend-domain>/api/internal/sweep`). Keep both values
+out of source control and logs.

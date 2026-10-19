@@ -1,0 +1,35 @@
+name: Sweep backend
+
+on:
+  schedule:
+    # GitHub may delay scheduled runs during high load and disables schedules after 60 days of inactivity in public repositories.
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke backend sweep
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SWEEP_URL: ${{ secrets.SWEEP_URL }}
+        run: |
+          set -euo pipefail
+          printf '::add-mask::%s\n' "$CRON_SECRET"
+          printf '::add-mask::%s\n' "$SWEEP_URL"
+          : "${CRON_SECRET:?CRON_SECRET must be configured}"
+          : "${SWEEP_URL:?SWEEP_URL must be configured}"
+          status="$(curl --fail --silent --show-error --max-time 30 \
+            --retry 2 --retry-all-errors --retry-delay 1 \
+            --output /dev/null --write-out '%{http_code}' \
+            --request POST \
+            --header "Authorization: Bearer ${CRON_SECRET}" \
+            "$SWEEP_URL")"
+          case "$status" in
+            2??) ;;
+            *) printf 'Sweep endpoint returned HTTP %s\n' "$status" >&2; exit 1 ;;
+          esac

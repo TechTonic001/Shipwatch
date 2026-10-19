@@ -20,5 +20,6 @@
 | Flapping pipeline | Cooldown and suppression preserve every alert row for audit. | Alert outbox integration tests |
 | Late failure event | A failure superseded by a newer deployment is ignored. | `tests/integration/phase3.test.ts` |
 | Muted repo | Alerts are inserted as suppressed and never sent. | Alert outbox integration tests |
+| Sweeper delayed or disabled | Webhook validation and inline persistence continue; stuck deliveries wait for the next successful sweep. Detect growing delay from `stats.oldestPendingDeliveryAgeSeconds` in the sweep summary. | `backend/src/routes/internal.ts`, `backend/src/services/observability.ts` |
 | Missing destination | Alerts are suppressed with `no_destination`, not failed. | Dispatcher integration test |
 | Malicious repo name in message | Slack markup and mentions are escaped. | `tests/unit/slack.test.ts` |

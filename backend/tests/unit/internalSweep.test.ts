@@ -1,5 +1,5 @@
 import request from "supertest";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const sweepServices = vi.hoisted(() => ({
   processBatch: vi.fn(async () => ({ claimed: 0, processed: 0, failed: 0, dead: 0, ignored: 0, lockLost: 0, released: 0 })),
@@ -38,6 +38,10 @@ delete process.env.CRON_SECRET;
 
 const { default: app } = await import("../../src/index.js");
 const { env } = await import("../../src/config/env.js");
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 function sweepRequest(method: "get" | "post", authorization?: string) {
   const requestBuilder = request(app)[method]("/api/internal/sweep");

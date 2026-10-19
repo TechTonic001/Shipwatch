@@ -32,6 +32,7 @@ jobs:
           path: ~/.npm
           key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npm ci
+      - run: npm exec --workspace backend -- tsx ../scripts/check-vercel-crons.ts
       - run: npm run lint
 
   typecheck:

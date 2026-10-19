@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { scheduleRunsAtMostDaily } from "../../../scripts/check-vercel-crons.mjs";
+import { scheduleRunsAtMostDaily } from "../../../scripts/check-vercel-crons.js";
 
 describe("Vercel cron Hobby policy", () => {
   it("allows a fixed daily schedule", () => {

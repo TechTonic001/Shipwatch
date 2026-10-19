@@ -14,7 +14,7 @@
   export const internalRouter = Router();
 
   const cronGuard = (authorization: string | undefined): boolean => {
-    if (!authorization) {
+    if (!authorization || !env.CRON_SECRET) {
       return false;
     }
 
