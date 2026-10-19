@@ -3,6 +3,7 @@ import { z, type ZodType } from "zod";
 import type { Incident, Metrics } from "../hooks/useMetrics";
 import type { Run } from "../hooks/useRuns";
 
+const DEPLOYED_BACKEND_URL = "https://shipwatchbackend.vercel.app";
 const demoChoice = new URLSearchParams(window.location.search).get("demo");
 export const demoMode = import.meta.env.DEV && ["1", "incident", "empty"].includes(demoChoice ?? "")
   ? demoChoice === "1" ? "standard" : demoChoice
@@ -100,10 +101,10 @@ export function getDashboardToken(): string {
 }
 
 function getApiBaseUrl(): string {
-  const rawValue = (import.meta.env.VITE_API_URL ?? "").trim().replace(/\/+$/, "");
+  const rawValue = (import.meta.env.VITE_API_URL ?? (import.meta.env.PROD ? DEPLOYED_BACKEND_URL : "")).trim().replace(/\/+$/, "");
   if (!rawValue) {
     if (import.meta.env.PROD) {
-      throw new ConfigError("Configuration error: VITE_API_URL is not set");
+      return DEPLOYED_BACKEND_URL;
     }
     return "http://localhost:3000";
   }

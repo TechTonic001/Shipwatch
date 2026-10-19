@@ -1,5 +1,7 @@
+const DEPLOYED_BACKEND_URL = "https://shipwatchbackend.vercel.app";
+
 export function EmptyState() {
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3100";
+  const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? DEPLOYED_BACKEND_URL : "http://localhost:3100");
   return <section className="rounded-console border border-dashed border-border bg-surface p-8 text-center" aria-labelledby="empty-heading">
     <span aria-hidden="true" className="mx-auto grid h-11 w-11 place-items-center rounded-full border border-border text-lg text-muted">↗</span>
     <h2 id="empty-heading" className="mt-4 text-lg font-semibold">Your delivery data will appear here</h2>
