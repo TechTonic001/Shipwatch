@@ -15,4 +15,11 @@ describe("health routes", () => {
     expect(response.status).toBe(200);
     expect(response.body.status).toBe("ok");
   });
+
+  it("serves a root health response", async () => {
+    const response = await request(app).get("/");
+    expect(response.status).toBe(200);
+    expect(response.body.ok).toBe(true);
+    expect(response.body.service).toBe("shipwatch-backend");
+  });
 });

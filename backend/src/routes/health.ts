@@ -5,6 +5,15 @@ import { pool } from "../db/pool.js";
 
 export const healthRouter = Router();
 
+healthRouter.get("/", (_req, res) => {
+  res.status(200).json({
+    ok: true,
+    service: "shipwatch-backend",
+    sha: env.BUILD_SHA,
+    env: env.NODE_ENV
+  });
+});
+
 healthRouter.get("/healthz", (_req, res) => {
   res.status(200).json({
     status: "ok",
