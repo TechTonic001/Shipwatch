@@ -7,7 +7,7 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "rootDir": ".",
+    "rootDir": "..",
     "outDir": "dist",
     "sourceMap": true,
     "types": ["node", "vitest/globals"]
