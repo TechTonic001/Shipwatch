@@ -1,12 +1,11 @@
 import { readdir, readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
 
 type CronConfig = { crons?: unknown };
 type CronEntry = { schedule?: unknown; path?: unknown };
 
 const ignoredDirectories = new Set([".git", ".vercel", "dist", "node_modules"]);
-const rootDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const rootDirectory = resolve(__dirname, "..");
 
 function validField(field: string, minimum: number, maximum: number): boolean {
   if (!field) return false;
@@ -105,8 +104,8 @@ async function main(): Promise<void> {
   if (failed) process.exitCode = 1;
 }
 
-const invokedPath = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href : "";
-if (import.meta.url === invokedPath) {
+const invokedPath = process.argv[1] ? resolve(process.argv[1]) : "";
+if (invokedPath === resolve(__dirname, "check-vercel-crons.ts")) {
   void main().catch((error: unknown) => {
     process.stderr.write(`Cron policy check failed: ${error instanceof Error ? error.message : String(error)}\n`);
     process.exitCode = 1;
